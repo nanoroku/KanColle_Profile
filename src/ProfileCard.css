@@ -17,7 +17,6 @@
     position: relative;
     background-color: #283d3f;
     background-image:
-        linear-gradient(rgba(27, 40, 56, 0.4), rgba(23, 29, 37, 0.4)),
         url('/bg2.png');
     background-position: center;
     background-size: cover;
