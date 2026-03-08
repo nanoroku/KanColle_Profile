@@ -20,7 +20,7 @@ const ProfileCard = ({ profileData, isExporting }) => {
 
   const cardStyle = bgImage
     ? {
-      backgroundImage: `url(${bgImage}), url('/bg2.png')`,
+      backgroundImage: `url(${bgImage}), url('${import.meta.env.BASE_URL}bg2.png')`,
       backgroundPosition: 'center, center',
       backgroundSize: 'cover, cover',
       backgroundRepeat: 'no-repeat, no-repeat'
