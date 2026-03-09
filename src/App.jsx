@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import { Download, Twitter, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
@@ -25,8 +25,49 @@ function App() {
   });
 
   const [isExporting, setIsExporting] = useState(false);
+  const [defaultBgBase64, setDefaultBgBase64] = useState('');
 
   const cardRef = useRef(null);
+
+  useEffect(() => {
+    const fetchDefaultBg = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.BASE_URL}bg2.png`);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => setDefaultBgBase64(reader.result);
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.error('Failed to load default background', err);
+      }
+    };
+    fetchDefaultBg();
+  }, []);
+
+  const resizeImage = (file, maxWidth, maxHeight, callback) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height && width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        callback(canvas.toDataURL(file.type || 'image/png', 0.9));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,22 +89,18 @@ function App() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData(prev => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+      resizeImage(file, 800, 800, (resizedUrl) => {
+        setProfileData(prev => ({ ...prev, image: resizedUrl }));
+      });
     }
   };
 
   const handleBgImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData(prev => ({ ...prev, bgImage: reader.result }));
-      };
-      reader.readAsDataURL(file);
+      resizeImage(file, 1500, 1500, (resizedUrl) => {
+        setProfileData(prev => ({ ...prev, bgImage: resizedUrl }));
+      });
     }
   };
 
@@ -80,8 +117,9 @@ function App() {
 
       try {
         const dataUrl = await toPng(cardElement, {
-          pixelRatio: 2.4, // 1.2x resolution scaling
+          pixelRatio: window.innerWidth <= 768 ? 1.5 : 2.0, // Reduced resolution scaling to prevent mobile canvas crashes
           skipFonts: false,
+          cacheBust: true,
           style: {
             transform: 'scale(1)',
             transformOrigin: 'top left',
@@ -355,7 +393,7 @@ function App() {
         <section className="preview-panel">
           <div className="glass-panel preview-container">
             <div className="kancolle-card-wrapper" id="capture-wrapper">
-              <ProfileCard profileData={profileData} isExporting={isExporting} />
+              <ProfileCard profileData={profileData} isExporting={isExporting} defaultBgBase64={defaultBgBase64} />
             </div>
           </div>
 

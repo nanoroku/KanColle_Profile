@@ -1,7 +1,7 @@
 import React from 'react';
 import './ProfileCard.css';
 
-const ProfileCard = ({ profileData, isExporting }) => {
+const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
   const {
     name,
     twitterName,
@@ -21,7 +21,7 @@ const ProfileCard = ({ profileData, isExporting }) => {
     bgScale
   } = profileData;
 
-  const defaultBgUrl = new URL(`${import.meta.env.BASE_URL}bg2.png`, window.location.href).href;
+  const defaultBgUrl = defaultBgBase64 || new URL(`${import.meta.env.BASE_URL}bg2.png`, window.location.href).href;
 
   const cardStyle = bgImage
     ? {
