@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { toPng } from 'html-to-image';
-import { Download, Twitter } from 'lucide-react';
+import { Download, Twitter, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
 
@@ -8,7 +8,7 @@ function App() {
   const [profileData, setProfileData] = useState({
     name: '',
     twitterName: '',
-    gender: '',
+    joinDate: '',
     server: '',
     playStyle: '',
     favoriteChars: '',
@@ -18,7 +18,10 @@ function App() {
     otherGames: '',
     freeSpace: '',
     image: null,
-    bgImage: null
+    bgImage: null,
+    bgPositionX: 0,
+    bgPositionY: 0,
+    bgScale: 100
   });
 
   const [isExporting, setIsExporting] = useState(false);
@@ -95,7 +98,7 @@ function App() {
   };
 
   const handlePostToX = () => {
-    const text = encodeURIComponent('艦これ自己紹介カードを作成しました！\n#艦これ自己紹介カード');
+    const text = encodeURIComponent('艦これ自己紹介カードを作成しました！\n\n#艦これ\n#艦これ自己紹介カード');
     const twitterUrl = `https://twitter.com/intent/tweet?text=${text}`;
     window.open(twitterUrl, '_blank');
   };
@@ -111,7 +114,7 @@ function App() {
         <section className="glass-panel form-panel">
 
           <div className="form-group">
-            <label className="form-label">画像アップロード</label>
+            <label className="form-label">アイコン画像</label>
             <input
               type="file"
               accept="image/*"
@@ -131,17 +134,17 @@ function App() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">X (旧Twitter) ID</label>
+            <label className="form-label">X (旧Twitter) での名前</label>
             <input
               type="text"
               name="twitterName"
               value={profileData.twitterName}
               onChange={handleChange}
-              placeholder="例: KanColle_STAFF (＠抜きで入力)"
+              placeholder="X(旧Twitter)での名前を入力"
             />
           </div>
 
-          <div className="form-group">
+          {/*<div className="form-group">
             <label className="form-label">性別</label>
             <div className="radio-group">
               {['男性♂', '女性♀', 'その他', '秘密'].map(opt => (
@@ -158,6 +161,17 @@ function App() {
                 </label>
               ))}
             </div>
+          </div>*/}
+
+          <div className="form-group">
+            <label className="form-label">着任時期</label>
+            <input
+              type="text"
+              name="joinDate"
+              value={profileData.joinDate}
+              onChange={handleChange}
+              placeholder="例: 2013年春"
+            />
           </div>
 
           <div className="form-group">
@@ -193,7 +207,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">イベントでの難易度</label>
             <div className="radio-group">
-              {['甲', '乙', '丙', '丁'].map(opt => (
+              {['甲', '乙', '丙', '丁', '未回答'].map(opt => (
                 <label key={opt} className="radio-label">
                   <input
                     type="radio"
@@ -242,7 +256,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">リアルイベントへの参加</label>
             <div className="radio-group">
-              {['行っている', '行ったことがない', '行きたい'].map(opt => (
+              {['行っている', '行きたい', '行ったことはない'].map(opt => (
                 <label key={opt} className="radio-label">
                   <input
                     type="radio"
@@ -275,7 +289,7 @@ function App() {
               name="freeSpace"
               value={profileData.freeSpace}
               onChange={handleChange}
-              placeholder="自己紹介、挨拶、着任時期、甲勲章の数、好きな艦娘などご自由に！"
+              placeholder="自己紹介、挨拶、甲勲章の数、好きな艦娘、未所持艦娘などご自由に！"
               rows={4}
             />
           </div>
@@ -288,6 +302,46 @@ function App() {
               onChange={handleBgImageUpload}
             />
           </div>
+
+          <div className="form-group">
+            <label className="form-label">背景画像の横位置 ({profileData.bgPositionX}px)</label>
+            <input
+              type="range"
+              name="bgPositionX"
+              min="-1500"
+              max="1500"
+              value={profileData.bgPositionX}
+              onChange={handleChange}
+              disabled={!profileData.bgImage}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">背景画像の縦位置 ({profileData.bgPositionY}px)</label>
+            <input
+              type="range"
+              name="bgPositionY"
+              min="-1500"
+              max="1500"
+              value={profileData.bgPositionY}
+              onChange={handleChange}
+              disabled={!profileData.bgImage}
+            />
+          </div>
+
+          {/* <div className="form-group">
+            <label className="form-label">背景画像の拡大率 ({profileData.bgScale}%)</label>
+            <input
+              type="range"
+              name="bgScale"
+              min="50"
+              max="300"
+              value={profileData.bgScale}
+              onChange={handleChange}
+              disabled={!profileData.bgImage}
+            />
+          </div>
+          */}
         </section>
 
         {/* Right Side: Preview & Actions */}
@@ -299,7 +353,7 @@ function App() {
           </div>
 
           <div className="action-buttons">
-            <button className="btn btn-primary" onClick={handleDownload}>
+            <button className="btn btn-primary" onClick={handleDownload} disabled={isExporting}>
               <Download size={20} />
               画像を保存する
             </button>
@@ -307,6 +361,13 @@ function App() {
               Xでポストする
             </button>
           </div>
+
+          {isExporting && (
+            <div className="export-progress">
+              <Loader2 className="spin" size={24} />
+              <span>画像生成中です... 少々お待ちください</span>
+            </div>
+          )}
         </section>
       </main>
     </div>

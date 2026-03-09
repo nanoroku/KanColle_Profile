@@ -188,3 +188,33 @@
 .btn-twitter:hover {
   background: #111;
 }
+
+/* Export Progress Spinner */
+.export-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(47, 129, 247, 0.1);
+  border: 1px solid rgba(47, 129, 247, 0.3);
+  border-radius: 8px;
+  color: #3ad5d8;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -41,6 +41,7 @@
     padding: 1rem 2rem;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
 .card-header h2 {
@@ -193,10 +194,18 @@
 }
 
 .info-value.name-value {
+    font-size: 1.26rem;
+    /* 1.4 * 1.2 */
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 2.4px;
+}
+
+.info-value.xname-value {
     font-size: 1.68rem;
     /* 1.4 * 1.2 */
     font-weight: 700;
-    color: #3ad5d8;
+    color: #ffffff;
     letter-spacing: 2.4px;
 }
 

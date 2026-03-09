@@ -5,7 +5,7 @@ const ProfileCard = ({ profileData, isExporting }) => {
   const {
     name,
     twitterName,
-    gender,
+    joinDate,
     server,
     playStyle,
     favoriteChars,
@@ -15,14 +15,17 @@ const ProfileCard = ({ profileData, isExporting }) => {
     otherGames,
     freeSpace,
     image,
-    bgImage
+    bgImage,
+    bgPositionX,
+    bgPositionY,
+    bgScale
   } = profileData;
 
   const cardStyle = bgImage
     ? {
       backgroundImage: `url(${bgImage}), url('${import.meta.env.BASE_URL}bg2.png')`,
-      backgroundPosition: 'center, center',
-      backgroundSize: 'cover, cover',
+      backgroundPosition: `calc(100% + ${bgPositionX}px) calc(100% + ${bgPositionY}px), center`,
+      //backgroundSize: `${bgScale}%, cover`,
       backgroundRepeat: 'no-repeat, no-repeat'
     }
     : {};
@@ -53,8 +56,8 @@ const ProfileCard = ({ profileData, isExporting }) => {
               <span className="info-value name-value">{name || '未入力'}</span>
             </div>
             <div className="info-row">
-              <span className="info-label">X(Twitter)</span>
-              <span className="info-value">@{twitterName || '未入力'}</span>
+              <span className="info-label">X(旧Twitter)での名前</span>
+              <span className="info-value xname-value">{twitterName || '未入力'}</span>
             </div>
           </div>
         </div>
@@ -63,19 +66,19 @@ const ProfileCard = ({ profileData, isExporting }) => {
         <div className="card-right">
           <div className="info-grid">
             <div className="info-item">
-              <span className="info-label">性別</span>
-              <span className="info-value">{gender || '未選択'}</span>
+              <span className="info-label">着任時期</span>
+              <span className="info-value">{joinDate || '未入力'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">所属サーバー</span>
               <span className="info-value">{server || '未入力'}</span>
             </div>
             <div className="info-item">
-              <span className="info-label">プレイスタイル</span>
+              <span className="info-label">普段のプレイスタイル</span>
               <span className="info-value">{playStyle || '未選択'}</span>
             </div>
             <div className="info-item">
-              <span className="info-label">難易度</span>
+              <span className="info-label">イベントでの難易度</span>
               <span className="info-value difficulty-badge" data-level={difficulty || ''}>
                 {difficulty || '未選択'}
               </span>
@@ -93,18 +96,18 @@ const ProfileCard = ({ profileData, isExporting }) => {
               <span className="info-value">
                 {Array.isArray(animeHistory) && animeHistory.length > 0
                   ? animeHistory.join('、')
-                  : '未選択'}
+                  : ''}
               </span>
             </div>
             <div className="info-item">
-              <span className="info-label">リアルイベント</span>
+              <span className="info-label">リアルイベントへの参加</span>
               <span className="info-value">{realEvents || '未選択'}</span>
             </div>
           </div>
 
           <div className="info-block">
             <span className="info-label">他プレイ中のゲーム</span>
-            <div className="info-value multi-line text-muted">{otherGames || '未入力'}</div>
+            <div className="info-value multi-line text-muted">{otherGames || ''}</div>
           </div>
 
           <div className="info-block flex-grow">
