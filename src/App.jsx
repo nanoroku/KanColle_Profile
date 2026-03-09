@@ -81,7 +81,14 @@ function App() {
       try {
         const dataUrl = await toPng(cardElement, {
           pixelRatio: 2.4, // 1.2x resolution scaling
-          skipFonts: false
+          skipFonts: false,
+          style: {
+            transform: 'scale(1)',
+            transformOrigin: 'top left',
+            margin: '0',
+          },
+          width: 756,
+          height: 1375,
         });
 
         const link = document.createElement('a');
