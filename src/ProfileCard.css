@@ -16,11 +16,6 @@
     flex-direction: column;
     position: relative;
     background-color: #283d3f;
-    background-image:
-        url('/bg2.png');
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
 }
 
 .kancolle-card::before {

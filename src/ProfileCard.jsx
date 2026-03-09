@@ -21,14 +21,21 @@ const ProfileCard = ({ profileData, isExporting }) => {
     bgScale
   } = profileData;
 
+  const defaultBgUrl = new URL(`${import.meta.env.BASE_URL}bg2.png`, window.location.href).href;
+
   const cardStyle = bgImage
     ? {
-      backgroundImage: `url(${bgImage}), url('${import.meta.env.BASE_URL}bg2.png')`,
+      backgroundImage: `url(${bgImage}), url('${defaultBgUrl}')`,
       backgroundPosition: `calc(100% + ${bgPositionX}px) calc(100% + ${bgPositionY}px), center`,
       //backgroundSize: `${bgScale}%, cover`,
       backgroundRepeat: 'no-repeat, no-repeat'
     }
-    : {};
+    : {
+      backgroundImage: `url('${defaultBgUrl}')`,
+      backgroundPosition: 'center',
+      backgroundSize: 'cover',
+      backgroundRepeat: 'no-repeat'
+    };
 
   return (
     <div id="card-preview" className="kancolle-card" style={cardStyle}>
