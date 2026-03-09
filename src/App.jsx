@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { toPng } from 'html-to-image';
+import { toPng, toJpeg } from 'html-to-image';
 import { Download, Twitter, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
@@ -117,7 +117,8 @@ function App() {
 
       try {
         const config = {
-          pixelRatio: window.innerWidth <= 768 ? 1.0 : 2.0, // Reduced to 1.0 on mobile to prevent memory limits
+          pixelRatio: window.innerWidth <= 768 ? 1.5 : 2.0, // Restored to 1.5x resolution
+          quality: 0.9,
           skipFonts: false,
           cacheBust: true,
           style: {
@@ -129,23 +130,37 @@ function App() {
           height: 1375,
         };
 
-        let dataUrl;
-        // iOS Safari / Mobile rendering bug workaround:
-        // Safari fails to decode embedded Base64 images in SVG foreignObjects on the first render. 
-        // Rendering multiple times forces synchronous decoding.
-        if (window.innerWidth <= 768 || /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
-          await toPng(cardElement, config);
-          await new Promise(r => setTimeout(r, 50));
-          await toPng(cardElement, config);
-          await new Promise(r => setTimeout(r, 50));
-          dataUrl = await toPng(cardElement, config);
-        } else {
-          dataUrl = await toPng(cardElement, config);
+        // Use toJpeg on mobile to produce a lighter Base64 string and avoid iOS URL length limits
+        const isMobile = window.innerWidth <= 768 || /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const dataUrl = isMobile
+          ? await toJpeg(cardElement, config)
+          : await toPng(cardElement, config);
+
+        // iOS specifically struggles to download large Data URIs directly via href.
+        // The native Web Share API offers a robust "Save Image" system instead.
+        if (isMobile && navigator.share) {
+          try {
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            const file = new File([blob], isMobile ? 'kancolle_profile.jpg' : 'kancolle_profile.png', { type: isMobile ? 'image/jpeg' : 'image/png' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: '艦これ自己紹介カード',
+              });
+              setIsExporting(false);
+              return; // Successful share/save via native OS dialogue!
+            }
+          } catch (shareErr) {
+            console.log('Share API cancelled or failed:', shareErr);
+            // Fallthrough to standard download link if share fails
+          }
         }
 
         const link = document.createElement('a');
         link.href = dataUrl;
-        link.download = 'kancolle_profile.png';
+        link.download = isMobile ? 'kancolle_profile.jpg' : 'kancolle_profile.png';
         link.click();
       } catch (err) {
         console.error('Error saving image:', err);
