@@ -116,8 +116,8 @@ function App() {
       }
 
       try {
-        const dataUrl = await toPng(cardElement, {
-          pixelRatio: window.innerWidth <= 768 ? 1.5 : 2.0, // Reduced resolution scaling to prevent mobile canvas crashes
+        const config = {
+          pixelRatio: window.innerWidth <= 768 ? 1.0 : 2.0, // Reduced to 1.0 on mobile to prevent memory limits
           skipFonts: false,
           cacheBust: true,
           style: {
@@ -127,7 +127,21 @@ function App() {
           },
           width: 756,
           height: 1375,
-        });
+        };
+
+        let dataUrl;
+        // iOS Safari / Mobile rendering bug workaround:
+        // Safari fails to decode embedded Base64 images in SVG foreignObjects on the first render. 
+        // Rendering multiple times forces synchronous decoding.
+        if (window.innerWidth <= 768 || /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+          await toPng(cardElement, config);
+          await new Promise(r => setTimeout(r, 50));
+          await toPng(cardElement, config);
+          await new Promise(r => setTimeout(r, 50));
+          dataUrl = await toPng(cardElement, config);
+        } else {
+          dataUrl = await toPng(cardElement, config);
+        }
 
         const link = document.createElement('a');
         link.href = dataUrl;
