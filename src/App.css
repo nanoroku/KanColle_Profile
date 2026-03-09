@@ -142,20 +142,22 @@
 .kancolle-card-wrapper {
   transform: scale(0.55);
   transform-origin: top center;
-  margin: 0 -170px -500px -170px;
+  margin-bottom: -500px;
+  display: flex;
+  justify-content: center;
 }
 
 @media (max-width: 1400px) {
   .kancolle-card-wrapper {
     transform: scale(0.6);
-    margin: 0 -151px -380px -151px;
+    margin-bottom: -380px;
   }
 }
 
 @media (max-width: 1024px) {
   .kancolle-card-wrapper {
     transform: scale(0.8);
-    margin: 0 -75px -190px -75px;
+    margin-bottom: -190px;
   }
 }
 
@@ -176,12 +178,15 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
   }
 
   .kancolle-card-wrapper {
     transform: scale(0.6);
-    margin: 0 -151px -450px -151px;
-    max-width: 100%;
+    transform-origin: top center;
+    margin-bottom: -450px;
   }
 }
 
@@ -193,7 +198,8 @@
 
   .kancolle-card-wrapper {
     transform: scale(0.42);
-    margin: 0 -219px -720px -219px;
+    transform-origin: top center;
+    margin-bottom: -720px;
   }
 
   .app-title {
