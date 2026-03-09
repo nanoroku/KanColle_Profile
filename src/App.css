@@ -5,6 +5,8 @@
   padding: 1rem;
   max-width: 1600px;
   margin: 0 auto;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .app-header {
@@ -22,14 +24,17 @@
 }
 
 .main-content {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
   flex: 1;
+  width: 100%;
+  max-width: 100%;
 }
 
 @media (min-width: 1024px) {
   .main-content {
+    display: grid;
     grid-template-columns: 400px 1fr;
     align-items: start;
   }
@@ -137,42 +142,58 @@
 .kancolle-card-wrapper {
   transform: scale(0.55);
   transform-origin: top center;
-  margin-bottom: -500px;
+  margin: 0 -170px -500px -170px;
 }
 
 @media (max-width: 1400px) {
   .kancolle-card-wrapper {
     transform: scale(0.6);
-    margin-bottom: -380px;
+    margin: 0 -151px -380px -151px;
   }
 }
 
 @media (max-width: 1024px) {
   .kancolle-card-wrapper {
     transform: scale(0.8);
-    margin-bottom: -190px;
+    margin: 0 -75px -190px -75px;
   }
 }
 
 @media (max-width: 768px) {
-  .app-title {
-    font-size: 2rem;
+  .app-container {
+    overflow-x: hidden;
+    padding: 1rem 0.5rem;
+  }
+
+  .main-content {
+    width: 100%;
+    margin: 0;
+  }
+
+  .form-panel,
+  .preview-container {
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .kancolle-card-wrapper {
     transform: scale(0.6);
-    margin-bottom: -450px;
+    margin: 0 -151px -450px -151px;
+    max-width: 100%;
   }
 }
 
 @media (max-width: 480px) {
   .app-container {
     padding: 0.5rem;
+    overflow-x: hidden;
   }
 
   .kancolle-card-wrapper {
     transform: scale(0.42);
-    margin-bottom: -720px;
+    margin: 0 -219px -720px -219px;
   }
 
   .app-title {
