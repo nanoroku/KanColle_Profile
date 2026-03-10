@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { domToPng, domToJpeg } from 'modern-screenshot';
+import { domToCanvas } from 'modern-screenshot';
 import { Download, Twitter, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
@@ -170,8 +170,9 @@ function App() {
       }
 
       try {
+        const isMobile = window.innerWidth <= 768 || /iPad|iPhone|iPod/.test(navigator.userAgent);
         const config = {
-          scale: window.innerWidth <= 768 ? 1.5 : 2.0, // Scale for high-res output
+          scale: isMobile ? 1.0 : 2.0, // Scale set to 1.0 for mobile to absolutely minimize memory footprint
           quality: 0.9,
           style: {
             transform: 'scale(1)',
@@ -182,19 +183,18 @@ function App() {
           height: 1375,
         };
 
-        // modern-screenshot fixes Safari decoding bugs internally, so we don't need multi-loops or pixelRatio hacks
-        const isMobile = window.innerWidth <= 768 || /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const dataUrl = isMobile
-          ? await domToJpeg(cardElement, config)
-          : await domToPng(cardElement, config);
+        const canvas = await domToCanvas(cardElement, config);
 
-        // iOS specifically struggles to download large Data URIs directly via href.
-        // The native Web Share API offers a robust "Save Image" system instead.
+        // iOS strictly limits canvas memory count. By creating a Blob natively from the Canvas,
+        // we avoid massive string duplicates, and can manually destroy the Canvas immediately.
         if (isMobile && navigator.share) {
           try {
-            const response = await fetch(dataUrl);
-            const blob = await response.blob();
-            const file = new File([blob], isMobile ? 'kancolle_profile.jpg' : 'kancolle_profile.png', { type: isMobile ? 'image/jpeg' : 'image/png' });
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+            // CRITICAL: Manually zero-out canvas dimensions to force WebKit to instantly drop the memory buffer
+            canvas.width = 0;
+            canvas.height = 0;
+
+            const file = new File([blob], 'kancolle_profile.jpg', { type: 'image/jpeg' });
 
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
               await navigator.share({
@@ -206,9 +206,14 @@ function App() {
             }
           } catch (shareErr) {
             console.log('Share API cancelled or failed:', shareErr);
-            // Fallthrough to standard download link if share fails
           }
         }
+
+        const dataUrl = canvas.toDataURL(isMobile ? 'image/jpeg' : 'image/png', 0.9);
+
+        // CRITICAL iOS FIX: Free memory immediately
+        canvas.width = 0;
+        canvas.height = 0;
 
         const link = document.createElement('a');
         link.href = dataUrl;
