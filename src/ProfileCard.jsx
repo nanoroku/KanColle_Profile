@@ -21,7 +21,7 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
     bgScale
   } = profileData;
 
-  const defaultBgUrl = defaultBgBase64 || new URL(`${import.meta.env.BASE_URL}bg2.png`, window.location.href).href;
+  const defaultBgUrl = defaultBgBase64 || `${import.meta.env.BASE_URL}bg2.png`;
 
   const bgContainerStyle = {
     position: 'absolute',
@@ -58,7 +58,7 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
     <div id="card-preview" className="kancolle-card">
       {/* Background Image Layers - Use <img> tags instead of CSS background-image for iOS html-to-image compatibility */}
       <div style={bgContainerStyle}>
-        <img src={defaultBgUrl} style={defaultBgStyle} alt="Default Background" crossOrigin="anonymous" />
+        <img src={defaultBgUrl} style={defaultBgStyle} alt="Default Background" />
         {bgImage && (
           <img src={bgImage} style={customBgStyle} alt="Custom Background" />
         )}
