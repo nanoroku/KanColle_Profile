@@ -31,13 +31,19 @@ function App() {
   const bgImageInputRef = useRef(null);
 
   useEffect(() => {
-    const fetchDefaultBg = async () => {
+    const fetchDefaultBg = () => {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}bg2.png`);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => setDefaultBgBase64(reader.result);
-        reader.readAsDataURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          // Convert to a highly compressed JPEG base64 string to prevent iOS Safari from dropping it due to String/Memory URI limits in SVGs
+          setDefaultBgBase64(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = `${import.meta.env.BASE_URL}bg2.png`;
       } catch (err) {
         console.error('Failed to load default background', err);
       }
