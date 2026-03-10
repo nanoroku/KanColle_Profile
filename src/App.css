@@ -246,6 +246,16 @@
   box-shadow: 0 6px 20px rgba(47, 129, 247, 0.23);
 }
 
+.btn-secondary {
+  background: var(--accent-blue);
+  color: #fff;
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: #3a8ff8;
+}
+
 .btn-twitter {
   background: #000000;
   color: white;

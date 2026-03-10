@@ -27,7 +27,7 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
     ? {
       backgroundImage: `url(${bgImage}), url('${defaultBgUrl}')`,
       backgroundPosition: `calc(100% + ${bgPositionX}px) calc(100% + ${bgPositionY}px), center`,
-      //backgroundSize: `${bgScale}%, cover`,
+      backgroundSize: `${bgScale}%, cover`,
       backgroundRepeat: 'no-repeat, no-repeat'
     }
     : {
@@ -78,7 +78,7 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
             </div>
             <div className="info-item">
               <span className="info-label">所属サーバー</span>
-              <span className="info-value">{server || '未入力'}</span>
+              <span className="info-value">{server || '未選択'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">普段のプレイスタイル</span>

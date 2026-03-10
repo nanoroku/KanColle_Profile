@@ -28,6 +28,7 @@ function App() {
   const [defaultBgBase64, setDefaultBgBase64] = useState('');
 
   const cardRef = useRef(null);
+  const bgImageInputRef = useRef(null);
 
   useEffect(() => {
     const fetchDefaultBg = async () => {
@@ -74,6 +75,44 @@ function App() {
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
+  const serverName = [
+    "横須賀鎮守府",
+    "呉鎮守府",
+    "佐世保鎮守府",
+    "舞鶴鎮守府",
+    "大湊警備府",
+    "トラック泊地",
+    "リンガ泊地",
+    "ラバウル基地",
+    "ショートランド泊地",
+    "ブイン基地",
+    "タウイタウイ泊地",
+    "パラオ泊地",
+    "ブルネイ泊地",
+    "単冠湾泊地",
+    "幌筵泊地",
+    "宿毛湾泊地",
+    "鹿屋基地",
+    "岩川基地",
+    "佐伯湾泊地",
+    "柱島泊地"
+  ];
+
+  const PulldownMenu = () => {
+    return (
+      <select
+        name="server"
+        value={profileData.server}
+        onChange={handleChange}
+      >
+        <option value="">未選択</option>
+        {serverName.map((server) => {
+          return <option key={server} value={server}>{server}</option>
+        })}
+      </select>
+    );
+  };
+
   const handleCheckboxChange = (e) => {
     const { name, value, checked } = e.target;
     setProfileData(prev => {
@@ -101,6 +140,19 @@ function App() {
       resizeImage(file, 1500, 1500, (resizedUrl) => {
         setProfileData(prev => ({ ...prev, bgImage: resizedUrl }));
       });
+    }
+  };
+
+  const handleBgImageReset = () => {
+    setProfileData(prev => ({
+      ...prev,
+      bgImage: null,
+      bgPositionX: 0,
+      bgPositionY: 0,
+      bgScale: 100
+    }));
+    if (bgImageInputRef.current) {
+      bgImageInputRef.current.value = '';
     }
   };
 
@@ -250,13 +302,7 @@ function App() {
 
           <div className="form-group">
             <label className="form-label">所属サーバー</label>
-            <input
-              type="text"
-              name="server"
-              value={profileData.server}
-              onChange={handleChange}
-              placeholder="例: 横須賀鎮守府"
-            />
+            <PulldownMenu />
           </div>
 
           <div className="form-group">
@@ -370,11 +416,24 @@ function App() {
 
           <div className="form-group">
             <label className="form-label">背景画像</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleBgImageUpload}
-            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBgImageUpload}
+                ref={bgImageInputRef}
+              />
+              {profileData.bgImage && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleBgImageReset}
+                  style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.75rem' }}
+                >
+                  リセット
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="form-group">
@@ -403,7 +462,7 @@ function App() {
             />
           </div>
 
-          {/* <div className="form-group">
+          <div className="form-group">
             <label className="form-label">背景画像の拡大率 ({profileData.bgScale}%)</label>
             <input
               type="range"
@@ -415,7 +474,6 @@ function App() {
               disabled={!profileData.bgImage}
             />
           </div>
-          */}
         </section>
 
         {/* Right Side: Preview & Actions */}
