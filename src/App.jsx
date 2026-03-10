@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { toPng, toJpeg } from 'html-to-image';
+import { domToPng, domToJpeg } from 'modern-screenshot';
 import { Download, Twitter, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
@@ -171,10 +171,8 @@ function App() {
 
       try {
         const config = {
-          pixelRatio: window.innerWidth <= 768 ? 1.5 : 2.0, // Restored to 1.5x resolution
+          scale: window.innerWidth <= 768 ? 1.5 : 2.0, // Scale for high-res output
           quality: 0.9,
-          skipFonts: false,
-          cacheBust: true,
           style: {
             transform: 'scale(1)',
             transformOrigin: 'top left',
@@ -184,11 +182,11 @@ function App() {
           height: 1375,
         };
 
-        // Use toJpeg on mobile to produce a lighter Base64 string and avoid iOS URL length limits
+        // modern-screenshot fixes Safari decoding bugs internally, so we don't need multi-loops or pixelRatio hacks
         const isMobile = window.innerWidth <= 768 || /iPad|iPhone|iPod/.test(navigator.userAgent);
         const dataUrl = isMobile
-          ? await toJpeg(cardElement, config)
-          : await toPng(cardElement, config);
+          ? await domToJpeg(cardElement, config)
+          : await domToPng(cardElement, config);
 
         // iOS specifically struggles to download large Data URIs directly via href.
         // The native Web Share API offers a robust "Save Image" system instead.
