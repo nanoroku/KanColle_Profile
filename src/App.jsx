@@ -164,12 +164,15 @@ function App() {
 
     setIsExporting(true);
 
+    let objectUrl = null;
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // export-mode の反映待ちを少し長めにする
+      await new Promise((resolve) => setTimeout(resolve, 350));
 
       const cardElement = document.getElementById("card-preview");
       if (!cardElement) {
-        return;
+        throw new Error("card-preview が見つかりません。");
       }
 
       const isMobile =
@@ -182,29 +185,33 @@ function App() {
         : "kancolle_profile.png";
 
       const blob = await domToBlob(cardElement, {
-        scale: isMobile ? 0.8 : 2,
+        scale: isMobile ? 0.6 : 2,
         quality: 0.9,
         width: 756,
         height: 1375,
+        backgroundColor: "#ffff00",
+        maximumCanvasSize: 2048,
+        drawImageInterval: 150,
+        debug: true,
         style: {
           transform: "scale(1)",
           transformOrigin: "top left",
           margin: "0",
+          opacity: "1",
+          visibility: "visible",
+          display: "block",
         },
       });
 
-      if (!blob) {
-        throw new Error("Blobの生成に失敗しました。");
+      if (!blob || blob.size === 0) {
+        throw new Error("Blob の生成に失敗しました。");
       }
 
       if (isMobile && navigator.share) {
         try {
           const file = new File([blob], fileName, { type: mimeType });
 
-          if (
-            navigator.canShare &&
-            navigator.canShare({ files: [file] })
-          ) {
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
               title: "艦これ自己紹介カード",
@@ -216,24 +223,21 @@ function App() {
         }
       }
 
-      const objectUrl = URL.createObjectURL(blob);
+      objectUrl = URL.createObjectURL(blob);
 
-      try {
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } finally {
-        setTimeout(() => {
-          URL.revokeObjectURL(objectUrl);
-        }, 1000);
-      }
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error("Error saving image:", err);
       alert("画像の保存に失敗しました。");
     } finally {
+      if (objectUrl) {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+      }
       setIsExporting(false);
     }
   };
