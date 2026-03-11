@@ -329,7 +329,7 @@ function App() {
       const avatarMeta = prepared.avatarMeta;
 
       const options = {
-        scale: isMobile ? 0.5 : 2,
+        scale: isMobile ? 0.8 : 2,
         quality: 0.9,
         width: 756,
         height: 1375,
