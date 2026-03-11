@@ -202,8 +202,8 @@ function App() {
 
     await Promise.all(
       images.map(async (img) => {
-        if (img.complete && img.naturalWidth > 0) {
-          if (typeof img.decode === 'function') {
+        if (img.complete) {
+          if (img.naturalWidth > 0 && typeof img.decode === 'function') {
             try {
               await img.decode();
             } catch { }
@@ -255,6 +255,15 @@ function App() {
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
 
+    // CRITICAL iOS FIX: Cloned DOM nodes lose their image buffers in WebKit. 
+    // We must manually force WebKit to re-hydrate every image by re-assigning the src.
+    const containerImages = wrapper.querySelectorAll('img');
+    containerImages.forEach(img => {
+      const currentSrc = img.src;
+      img.src = '';
+      img.src = currentSrc;
+    });
+
     await waitForRender();
     await waitForAssets(wrapper);
     await wait(120);
@@ -302,9 +311,6 @@ function App() {
         width: 756,
         height: 1375,
         backgroundColor: '#283d3f',
-        maximumCanvasSize: 1536,
-        drawImageInterval: 200,
-        cacheBust: true,
         style: {
           transform: 'none',
           transformOrigin: 'top left',
