@@ -249,10 +249,11 @@ function App() {
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
 
-    // 透過キャプチャのために背景レイヤーを非表示にする
+    // 透過キャプチャのために背景レイヤーを完全にDOMから削除する
+    // （display:noneだと内部の画像タグがSVG変換プロセスに巻き込まれ、結局iOSのメモリをパンクさせるため）
     const bgLayer = wrapper.querySelector('#bg-layer');
     if (bgLayer) {
-      bgLayer.style.display = 'none';
+      bgLayer.parentNode.removeChild(bgLayer);
     }
 
     // CRITICAL iOS FIX: Cloned DOM nodes lose their image buffers in WebKit. 
@@ -266,9 +267,30 @@ function App() {
 
     await waitForRender();
     await waitForAssets(wrapper);
+
+    // iOS Safari特例対応：巨大なBase64アイコン画像もSVGレンダラを爆破するため、
+    // DOMから完全に取り除き、透過した穴を開けておく。座標だけ控えてネイティブCanvasで自前描画する。
+    let avatarMeta = null;
+    const avatarImg = wrapper.querySelector('.avatar-img');
+    const avatarFrame = wrapper.querySelector('.avatar-frame');
+    if (avatarImg && avatarFrame) {
+      const wRect = wrapper.getBoundingClientRect();
+      const fRect = avatarFrame.getBoundingClientRect();
+      avatarMeta = {
+        src: profileData.image, // Base64
+        x: fRect.left - wRect.left,
+        y: fRect.top - wRect.top,
+        width: fRect.width,
+        height: fRect.height
+      };
+
+      avatarImg.parentNode.removeChild(avatarImg);
+      avatarFrame.style.background = 'transparent';
+    }
+
     await wait(120);
 
-    return { wrapper, clone };
+    return { wrapper, clone, avatarMeta };
   };
 
   const handleDownload = async () => {
@@ -304,6 +326,7 @@ function App() {
       const prepared = await createCaptureClone(sourceEl);
       wrapper = prepared.wrapper;
       const target = prepared.clone;
+      const avatarMeta = prepared.avatarMeta;
 
       const options = {
         scale: isMobile ? 0.5 : 2,
@@ -386,6 +409,25 @@ function App() {
             logicW * scale,
             logicH * scale
           );
+        }
+      }
+
+      // 3.5. アイコン画像をネイティブCanvasで描画（UIレイヤーの裏の「透明な穴」から見えるように配置）
+      if (avatarMeta && avatarMeta.src) {
+        const aImg = await loadImg(avatarMeta.src);
+        if (aImg) {
+          ctx.save();
+          const ax = avatarMeta.x * scale;
+          const ay = avatarMeta.y * scale;
+          const aw = avatarMeta.width * scale;
+          const ah = avatarMeta.height * scale;
+          const radius = 8 * scale; // border-radius: 8px に対応
+
+          ctx.beginPath();
+          ctx.roundRect(ax, ay, aw, ah, radius);
+          ctx.clip();
+          ctx.drawImage(aImg, ax, ay, aw, ah);
+          ctx.restore();
         }
       }
 
