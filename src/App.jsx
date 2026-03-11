@@ -426,7 +426,7 @@ function App() {
             const logicW = 756 * (profileData.bgScale / 100);
             const logicH = customImg.height * (logicW / customImg.width);
             const logicX = 756 - logicW - (-profileData.bgPositionX);
-            const logicY = 1375 - logicH - (-profileData.bgPositionY);
+            const logicY = 1450 - logicH - (-profileData.bgPositionY);
 
             ctx.drawImage(
               customImg,
