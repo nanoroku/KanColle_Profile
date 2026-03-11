@@ -159,6 +159,52 @@ function App() {
     }
   };
 
+  const waitForRender = async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  };
+
+  const waitForAssets = async (root) => {
+    const images = Array.from(root.querySelectorAll("img"));
+
+    await Promise.all(
+      images.map(async (img) => {
+        if (img.complete && img.naturalWidth > 0) {
+          if (typeof img.decode === "function") {
+            try {
+              await img.decode();
+            } catch (e) {
+              // decode失敗は無視して続行
+            }
+          }
+          return;
+        }
+
+        await new Promise((resolve) => {
+          const done = () => resolve();
+          img.onload = done;
+          img.onerror = done;
+        });
+
+        if (typeof img.decode === "function") {
+          try {
+            await img.decode();
+          } catch (e) {
+            // decode失敗は無視して続行
+          }
+        }
+      })
+    );
+
+    if (document.fonts && document.fonts.ready) {
+      try {
+        await document.fonts.ready;
+      } catch (e) {
+        // fonts.ready失敗は無視
+      }
+    }
+  };
+
   const handleDownload = async () => {
     if (isExporting) return;
 
@@ -167,9 +213,6 @@ function App() {
     let objectUrl = null;
 
     try {
-      // export-mode の反映待ちを少し長めにする
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
       const cardElement = document.getElementById("card-preview");
       if (!cardElement) {
         throw new Error("card-preview が見つかりません。");
@@ -184,22 +227,26 @@ function App() {
         ? "kancolle_profile.jpg"
         : "kancolle_profile.png";
 
+      // export-mode の反映待ちが必要ならここで state/class を切り替えた後に待つ
+      await waitForRender();
+      await waitForAssets(cardElement);
+      await waitForRender();
+
       const blob = await domToBlob(cardElement, {
         scale: isMobile ? 0.6 : 2,
         quality: 0.9,
         width: 756,
         height: 1375,
-        backgroundColor: "#ffff00",
+        backgroundColor: "#283d3f",
         maximumCanvasSize: 2048,
         drawImageInterval: 150,
-        debug: true,
         style: {
-          transform: "scale(1)",
+          transform: "none",
           transformOrigin: "top left",
           margin: "0",
           opacity: "1",
           visibility: "visible",
-          display: "block",
+          display: "flex",
         },
       });
 
@@ -236,8 +283,11 @@ function App() {
       alert("画像の保存に失敗しました。");
     } finally {
       if (objectUrl) {
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+        setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+        }, 1500);
       }
+
       setIsExporting(false);
     }
   };
