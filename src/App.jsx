@@ -226,13 +226,13 @@ function App() {
     }
   };
 
-  const createCaptureClone = async (sourceEl) => {
+  const createCaptureClone = async (sourceEl, isMobile) => {
     const wrapper = document.createElement('div');
     wrapper.style.position = 'fixed';
     wrapper.style.left = '-10000px';
     wrapper.style.top = '0';
     wrapper.style.width = '756px';
-    wrapper.style.height = '1375px';
+    wrapper.style.height = '1450px';
     wrapper.style.pointerEvents = 'none';
     wrapper.style.opacity = '1';
     wrapper.style.zIndex = '-1';
@@ -249,11 +249,13 @@ function App() {
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
 
-    // 透過キャプチャのために背景レイヤーを完全にDOMから削除する
-    // （display:noneだと内部の画像タグがSVG変換プロセスに巻き込まれ、結局iOSのメモリをパンクさせるため）
-    const bgLayer = wrapper.querySelector('#bg-layer');
-    if (bgLayer) {
-      bgLayer.parentNode.removeChild(bgLayer);
+    // 透過キャプチャのために背景レイヤーを完全にDOMから削除する（iOSのメモリパンク対策）
+    // PCの場合は、CSSのbackdrop-filterを正しく効かせるために背景をそのまま残す
+    if (isMobile) {
+      const bgLayer = wrapper.querySelector('#bg-layer');
+      if (bgLayer) {
+        bgLayer.parentNode.removeChild(bgLayer);
+      }
     }
 
     // CRITICAL iOS FIX: Cloned DOM nodes lose their image buffers in WebKit. 
@@ -268,24 +270,41 @@ function App() {
     await waitForRender();
     await waitForAssets(wrapper);
 
+    // Safari SVGレンダラやmodern-screenshotがbackdrop-filterを落とす問題への対策
+    // クローン側の .info-block や .info-item（ガラスパネル）に対して、疑似的にfilter: blurを追加する
+    const glassPanels = wrapper.querySelectorAll('.info-block, .info-item, .card-header, .avatar-frame');
+    glassPanels.forEach(panel => {
+      // 既存の背景色の上からぼかしを直接かけることで、後ろの背景は見えないがパネル自体が曇りガラスのように見える疑似表現
+      panel.style.backdropFilter = 'blur(4px)';
+      panel.style.webkitBackdropFilter = 'blur(4px)';
+      // WebKitがどうしてもbackdropFilterを描画しない場合のフォールバックとして、半透明の暗い背景色を少しだけ濃くする
+      const currentBg = window.getComputedStyle(panel).backgroundColor || '';
+      // #283d3f88 (0.533) でも #283d3f99 (0.6) であっても、ベースの rgb(40, 61, 63) で一致すれば一律0.7の濃さに揃える
+      if (currentBg.includes('40, 61, 63') || currentBg.includes('40,61,63')) {
+        panel.style.backgroundColor = 'rgba(40, 61, 63, 0.6)';
+      }
+    });
+
     // iOS Safari特例対応：巨大なBase64アイコン画像もSVGレンダラを爆破するため、
     // DOMから完全に取り除き、透過した穴を開けておく。座標だけ控えてネイティブCanvasで自前描画する。
     let avatarMeta = null;
-    const avatarImg = wrapper.querySelector('.avatar-img');
-    const avatarFrame = wrapper.querySelector('.avatar-frame');
-    if (avatarImg && avatarFrame) {
-      const wRect = wrapper.getBoundingClientRect();
-      const fRect = avatarFrame.getBoundingClientRect();
-      avatarMeta = {
-        src: profileData.image, // Base64
-        x: fRect.left - wRect.left,
-        y: fRect.top - wRect.top,
-        width: fRect.width,
-        height: fRect.height
-      };
+    if (isMobile) {
+      const avatarImg = wrapper.querySelector('.avatar-img');
+      const avatarFrame = wrapper.querySelector('.avatar-frame');
+      if (avatarImg && avatarFrame) {
+        const wRect = wrapper.getBoundingClientRect();
+        const fRect = avatarFrame.getBoundingClientRect();
+        avatarMeta = {
+          src: profileData.image, // Base64
+          x: fRect.left - wRect.left,
+          y: fRect.top - wRect.top,
+          width: fRect.width,
+          height: fRect.height
+        };
 
-      avatarImg.parentNode.removeChild(avatarImg);
-      avatarFrame.style.background = 'transparent';
+        avatarImg.parentNode.removeChild(avatarImg);
+        avatarFrame.style.background = 'transparent';
+      }
     }
 
     await wait(120);
@@ -323,7 +342,7 @@ function App() {
       await waitForRender();
       await waitForAssets(sourceEl);
 
-      const prepared = await createCaptureClone(sourceEl);
+      const prepared = await createCaptureClone(sourceEl, isMobile);
       wrapper = prepared.wrapper;
       const target = prepared.clone;
       const avatarMeta = prepared.avatarMeta;
@@ -332,9 +351,12 @@ function App() {
         scale: isMobile ? 1.0 : 2,
         quality: 0.9,
         width: 756,
-        height: 1375,
+        height: 1450,
         backgroundColor: 'transparent',
         font: false, // 超重要：Google Fonts（Noto Sans JP等）のBase64埋め込みを無効化し、SVGサイズを数MBから数KBに削減してiOSメモリパンクを完全回避
+        features: {
+          backdropFilter: true
+        },
         style: {
           transform: 'none',
           transformOrigin: 'top left',
@@ -356,83 +378,88 @@ function App() {
       const canvas = document.createElement('canvas');
       const scale = options.scale;
       const cw = 756 * scale;
-      const ch = 1375 * scale;
+      const ch = 1450 * scale;
       canvas.width = cw;
       canvas.height = ch;
       const ctx = canvas.getContext('2d');
 
-      // 1. ベースの背景色を塗りつぶし
-      ctx.fillStyle = '#283d3f';
-      ctx.fillRect(0, 0, cw, ch);
+      // iOS環境の場合はメモリセーフな「背景のレイヤー分離・ネイティブ合成」を行う
+      // PC環境の場合は、背景画像も含めた完全状態のDOMを直接キャプチャ（backdrop-filterを反映させるため）
+      if (isMobile) {
+        // 1. ベースの背景色を塗りつぶし
+        ctx.fillStyle = '#283d3f';
+        ctx.fillRect(0, 0, cw, ch);
 
-      // 画像読み込み用ヘルパー
-      const loadImg = (src) => new Promise((resolve) => {
-        if (!src) return resolve(null);
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = src;
-      });
+        // 画像読み込み用ヘルパー
+        const loadImg = (src) => new Promise((resolve) => {
+          if (!src) return resolve(null);
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = src;
+        });
 
-      // 2. デフォルト背景画像を描画（object-fit: coverの計算）
-      const defaultImg = await loadImg(defaultBgUrl);
-      if (defaultImg) {
-        const imgRatio = defaultImg.width / defaultImg.height;
-        const canvasRatio = cw / ch;
-        let drawW = cw;
-        let drawH = ch;
-        let offsetX = 0;
-        let offsetY = 0;
+        // 2. デフォルト背景画像を描画（object-fit: coverの計算）
+        const defaultImg = await loadImg(defaultBgUrl);
+        if (defaultImg) {
+          const imgRatio = defaultImg.width / defaultImg.height;
+          const canvasRatio = cw / ch;
+          let drawW = cw;
+          let drawH = ch;
+          let offsetX = 0;
+          let offsetY = 0;
 
-        if (imgRatio > canvasRatio) {
-          drawW = ch * imgRatio;
-          offsetX = -(drawW - cw) / 2;
-        } else {
-          drawH = cw / imgRatio;
-          offsetY = -(drawH - ch) / 2;
+          if (imgRatio > canvasRatio) {
+            drawW = ch * imgRatio;
+            offsetX = -(drawW - cw) / 2;
+          } else {
+            drawH = cw / imgRatio;
+            offsetY = -(drawH - ch) / 2;
+          }
+          ctx.drawImage(defaultImg, offsetX, offsetY, drawW, drawH);
         }
-        ctx.drawImage(defaultImg, offsetX, offsetY, drawW, drawH);
+
+        // 3. ユーザーのカスタム背景を描画（right, bottom基準のcontain風）
+        if (profileData.bgImage) {
+          const customImg = await loadImg(profileData.bgImage);
+          if (customImg) {
+            const logicW = 756 * (profileData.bgScale / 100);
+            const logicH = customImg.height * (logicW / customImg.width);
+            const logicX = 756 - logicW - (-profileData.bgPositionX);
+            const logicY = 1375 - logicH - (-profileData.bgPositionY);
+
+            ctx.drawImage(
+              customImg,
+              logicX * scale,
+              logicY * scale,
+              logicW * scale,
+              logicH * scale
+            );
+          }
+        }
+
+        // 3.5. アイコン画像をネイティブCanvasで描画（UIレイヤーの裏の「透明な穴」から見えるように配置）
+        if (avatarMeta && avatarMeta.src) {
+          const aImg = await loadImg(avatarMeta.src);
+          if (aImg) {
+            ctx.save();
+            const ax = avatarMeta.x * scale;
+            const ay = avatarMeta.y * scale;
+            const aw = avatarMeta.width * scale;
+            const ah = avatarMeta.height * scale;
+            const radius = 8 * scale; // border-radius: 8px に対応
+
+            ctx.beginPath();
+            ctx.roundRect(ax, ay, aw, ah, radius);
+            ctx.clip();
+            ctx.drawImage(aImg, ax, ay, aw, ah);
+            ctx.restore();
+          }
+        }
       }
 
-      // 3. ユーザーのカスタム背景を描画（right, bottom基準のcontain風）
-      if (profileData.bgImage) {
-        const customImg = await loadImg(profileData.bgImage);
-        if (customImg) {
-          const logicW = 756 * (profileData.bgScale / 100);
-          const logicH = logicW * (customImg.height / customImg.width);
-          const logicX = 756 - logicW - (-profileData.bgPositionX);
-          const logicY = 1375 - logicH - (-profileData.bgPositionY);
-
-          ctx.drawImage(
-            customImg,
-            logicX * scale,
-            logicY * scale,
-            logicW * scale,
-            logicH * scale
-          );
-        }
-      }
-
-      // 3.5. アイコン画像をネイティブCanvasで描画（UIレイヤーの裏の「透明な穴」から見えるように配置）
-      if (avatarMeta && avatarMeta.src) {
-        const aImg = await loadImg(avatarMeta.src);
-        if (aImg) {
-          ctx.save();
-          const ax = avatarMeta.x * scale;
-          const ay = avatarMeta.y * scale;
-          const aw = avatarMeta.width * scale;
-          const ah = avatarMeta.height * scale;
-          const radius = 8 * scale; // border-radius: 8px に対応
-
-          ctx.beginPath();
-          ctx.roundRect(ax, ay, aw, ah, radius);
-          ctx.clip();
-          ctx.drawImage(aImg, ax, ay, aw, ah);
-          ctx.restore();
-        }
-      }
-
-      // 4. UIレイヤーを描画（前面重ね）
+      // 4. UIレイヤーを描画
+      // iOSの場合は透明な背景を持つ軽量化UI、PCの場合は全てを含んだフル画像がスタンプされる
       ctx.drawImage(uiCanvas, 0, 0, cw, ch);
 
       // 【極めて重要】modern-screenshot内部で生成された巨大CanvasのメモリをJavaScript側で強制破棄

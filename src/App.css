@@ -142,7 +142,7 @@
 .kancolle-card-wrapper {
   transform: scale(0.55);
   transform-origin: top center;
-  margin-bottom: -500px;
+  margin-bottom: -650px;
   display: flex;
   justify-content: center;
 }
@@ -150,14 +150,14 @@
 @media (max-width: 1400px) {
   .kancolle-card-wrapper {
     transform: scale(0.6);
-    margin-bottom: -380px;
+    margin-bottom: -580px;
   }
 }
 
 @media (max-width: 1024px) {
   .kancolle-card-wrapper {
     transform: scale(0.8);
-    margin-bottom: -190px;
+    margin-bottom: -290px;
   }
 }
 
