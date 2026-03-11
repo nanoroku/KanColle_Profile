@@ -181,7 +181,7 @@ function App() {
 
     try {
       const config = {
-        scale: isMobile ? 0.8 : 2.0,
+        scale: isMobile ? 0.5 : 2.0,
         quality: 0.9,
         style: {
           transform: "scale(1)",
