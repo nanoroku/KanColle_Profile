@@ -321,17 +321,6 @@ function App() {
         }
       };
 
-      // ウォームアップ
-      try {
-        const warmupBlob = await domToBlob(target, options);
-        if (warmupBlob) {
-          // 参照を早めに切る
-        }
-        await wait(150);
-      } catch (e) {
-        console.log('warmup failed', e);
-      }
-
       const blob = await domToBlob(target, options);
 
       if (!blob || blob.size === 0) {
