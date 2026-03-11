@@ -334,6 +334,7 @@ function App() {
         width: 756,
         height: 1375,
         backgroundColor: 'transparent',
+        font: false, // 超重要：Google Fonts（Noto Sans JP等）のBase64埋め込みを無効化し、SVGサイズを数MBから数KBに削減してiOSメモリパンクを完全回避
         style: {
           transform: 'none',
           transformOrigin: 'top left',
