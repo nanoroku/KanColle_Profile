@@ -135,14 +135,14 @@
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    backdrop-filter: blur(4px);
+    /* backdrop-filter: blur(4px); */
 }
 
 .info-block.primary-info {
     width: 100%;
     background: #283d3f88;
     gap: 0.5rem;
-    backdrop-filter: blur(4px);
+    /* backdrop-filter: blur(4px); */
 }
 
 .info-grid {
@@ -158,7 +158,7 @@
     padding: 0.5rem 0.75rem;
     display: flex;
     flex-direction: column;
-    backdrop-filter: blur(4px);
+    /* backdrop-filter: blur(4px); */
 }
 
 .info-row {
