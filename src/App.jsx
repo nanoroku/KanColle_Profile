@@ -78,6 +78,9 @@ function App() {
 
           ctx.drawImage(img, 0, 0, width, height);
 
+          const isTransparentFormat = ['image/png', 'image/gif', 'image/webp'].includes(file.type);
+          const outputMimeType = isTransparentFormat ? 'image/png' : 'image/jpeg';
+
           canvas.toBlob(
             (blob) => {
               if (!blob) {
@@ -86,8 +89,8 @@ function App() {
               }
               resolve(URL.createObjectURL(blob));
             },
-            'image/jpeg',
-            0.9
+            outputMimeType,
+            isTransparentFormat ? undefined : 0.9
           );
         };
 
