@@ -26,8 +26,8 @@ function App() {
 
   const [isExporting, setIsExporting] = useState(false);
   const [defaultBgUrl, setDefaultBgUrl] = useState('');
-
   const bgImageInputRef = useRef(null);
+  const lastExportAtRef = useRef(0);
 
   useEffect(() => {
     const isMobile =
@@ -84,8 +84,7 @@ function App() {
                 reject(new Error('Blob生成に失敗しました。'));
                 return;
               }
-              const objectUrl = URL.createObjectURL(blob);
-              resolve(objectUrl);
+              resolve(URL.createObjectURL(blob));
             },
             'image/jpeg',
             0.9
@@ -107,31 +106,28 @@ function App() {
   };
 
   const serverName = [
-    "横須賀鎮守府", "呉鎮守府", "佐世保鎮守府", "舞鶴鎮守府", "大湊警備府",
-    "トラック泊地", "リンガ泊地", "ラバウル基地", "ショートランド泊地", "ブイン基地",
-    "タウイタウイ泊地", "パラオ泊地", "ブルネイ泊地", "単冠湾泊地", "幌筵泊地",
-    "宿毛湾泊地", "鹿屋基地", "岩川基地", "佐伯湾泊地", "柱島泊地"
+    '横須賀鎮守府', '呉鎮守府', '佐世保鎮守府', '舞鶴鎮守府', '大湊警備府',
+    'トラック泊地', 'リンガ泊地', 'ラバウル基地', 'ショートランド泊地', 'ブイン基地',
+    'タウイタウイ泊地', 'パラオ泊地', 'ブルネイ泊地', '単冠湾泊地', '幌筵泊地',
+    '宿毛湾泊地', '鹿屋基地', '岩川基地', '佐伯湾泊地', '柱島泊地'
   ];
 
-  const PulldownMenu = () => {
-    return (
-      <select name="server" value={profileData.server} onChange={handleChange}>
-        <option value="">未選択</option>
-        {serverName.map((server) => (
-          <option key={server} value={server}>{server}</option>
-        ))}
-      </select>
-    );
-  };
+  const PulldownMenu = () => (
+    <select name="server" value={profileData.server} onChange={handleChange}>
+      <option value="">未選択</option>
+      {serverName.map((server) => (
+        <option key={server} value={server}>{server}</option>
+      ))}
+    </select>
+  );
 
   const handleCheckboxChange = (e) => {
     const { name, value, checked } = e.target;
     setProfileData((prev) => {
       const currentArray = prev[name] || [];
-      if (checked) {
-        return { ...prev, [name]: [...currentArray, value] };
-      }
-      return { ...prev, [name]: currentArray.filter((item) => item !== value) };
+      return checked
+        ? { ...prev, [name]: [...currentArray, value] }
+        : { ...prev, [name]: currentArray.filter((item) => item !== value) };
     });
   };
 
@@ -141,7 +137,6 @@ function App() {
 
     try {
       const resizedUrl = await resizeImage(file, 800, 800);
-
       setProfileData((prev) => {
         if (prev.image && prev.image.startsWith('blob:')) {
           URL.revokeObjectURL(prev.image);
@@ -160,7 +155,6 @@ function App() {
 
     try {
       const resizedUrl = await resizeImage(file, 1500, 1500);
-
       setProfileData((prev) => {
         if (prev.bgImage && prev.bgImage.startsWith('blob:')) {
           URL.revokeObjectURL(prev.bgImage);
@@ -178,7 +172,6 @@ function App() {
       if (prev.bgImage && prev.bgImage.startsWith('blob:')) {
         URL.revokeObjectURL(prev.bgImage);
       }
-
       return {
         ...prev,
         bgImage: null,
@@ -193,7 +186,10 @@ function App() {
     }
   };
 
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const waitForRender = async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await new Promise((resolve) => requestAnimationFrame(resolve));
   };
@@ -226,23 +222,60 @@ function App() {
       })
     );
 
-    if (document.fonts && document.fonts.ready) {
+    if (document.fonts?.ready) {
       try {
         await document.fonts.ready;
       } catch { }
     }
   };
 
+  const createCaptureClone = async (sourceEl) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '756px';
+    wrapper.style.height = '1375px';
+    wrapper.style.pointerEvents = 'none';
+    wrapper.style.opacity = '1';
+    wrapper.style.zIndex = '-1';
+    wrapper.style.background = '#283d3f';
+
+    const clone = sourceEl.cloneNode(true);
+    clone.id = 'card-preview-clone';
+    clone.style.transform = 'none';
+    clone.style.margin = '0';
+    clone.style.opacity = '1';
+    clone.style.visibility = 'visible';
+    clone.style.display = 'flex';
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    await waitForRender();
+    await waitForAssets(wrapper);
+    await wait(120);
+
+    return { wrapper, clone };
+  };
+
   const handleDownload = async () => {
     if (isExporting) return;
-
     setIsExporting(true);
 
     let objectUrl = null;
+    let wrapper = null;
 
     try {
-      const cardElement = document.getElementById('card-preview');
-      if (!cardElement) {
+      const now = Date.now();
+      const diff = now - lastExportAtRef.current;
+      if (diff < 1200) {
+        await wait(1200 - diff);
+      }
+      lastExportAtRef.current = Date.now();
+
+      const sourceEl = document.getElementById('card-preview');
+      if (!sourceEl) {
         throw new Error('card-preview が見つかりません。');
       }
 
@@ -254,26 +287,43 @@ function App() {
       const fileName = isMobile ? 'kancolle_profile.jpg' : 'kancolle_profile.png';
 
       await waitForRender();
-      await waitForAssets(cardElement);
-      await waitForRender();
+      await waitForAssets(sourceEl);
 
-      const blob = await domToBlob(cardElement, {
-        scale: isMobile ? 0.6 : 2,
+      const prepared = await createCaptureClone(sourceEl);
+      wrapper = prepared.wrapper;
+      const target = prepared.clone;
+
+      const options = {
+        scale: isMobile ? 0.5 : 2,
         quality: 0.9,
         width: 756,
         height: 1375,
         backgroundColor: '#283d3f',
-        maximumCanvasSize: 2048,
-        drawImageInterval: 150,
+        maximumCanvasSize: 1536,
+        drawImageInterval: 200,
+        cacheBust: true,
         style: {
           transform: 'none',
           transformOrigin: 'top left',
           margin: '0',
           opacity: '1',
           visibility: 'visible',
-          display: 'flex',
-        },
-      });
+          display: 'flex'
+        }
+      };
+
+      // ウォームアップ
+      try {
+        const warmupBlob = await domToBlob(target, options);
+        if (warmupBlob) {
+          // 参照を早めに切る
+        }
+        await wait(150);
+      } catch (e) {
+        console.log('warmup failed', e);
+      }
+
+      const blob = await domToBlob(target, options);
 
       if (!blob || blob.size === 0) {
         throw new Error('Blob の生成に失敗しました。');
@@ -282,11 +332,10 @@ function App() {
       if (isMobile && navigator.share) {
         try {
           const file = new File([blob], fileName, { type: mimeType });
-
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
-              title: '艦これ自己紹介カード',
+              title: '艦これ自己紹介カード'
             });
             return;
           }
@@ -307,10 +356,14 @@ function App() {
       console.error('Error saving image:', err);
       alert('画像の保存に失敗しました。');
     } finally {
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.removeChild(wrapper);
+      }
+
       if (objectUrl) {
         setTimeout(() => {
           URL.revokeObjectURL(objectUrl);
-        }, 1500);
+        }, 2000);
       }
 
       setIsExporting(false);
@@ -321,8 +374,7 @@ function App() {
     const text = encodeURIComponent(
       '艦これ自己紹介カードを作成しました！\n\n#艦これ\n#艦これ自己紹介カード'
     );
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${text}`;
-    window.open(twitterUrl, '_blank');
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
   };
 
   return (
@@ -340,38 +392,17 @@ function App() {
 
           <div className="form-group">
             <label className="form-label">提督名</label>
-            <input
-              type="text"
-              name="name"
-              value={profileData.name}
-              onChange={handleChange}
-              placeholder="あなたの提督名を入力"
-              autoComplete="off"
-            />
+            <input type="text" name="name" value={profileData.name} onChange={handleChange} placeholder="あなたの提督名を入力" autoComplete="off" />
           </div>
 
           <div className="form-group">
             <label className="form-label">X (旧Twitter) での名前</label>
-            <input
-              type="text"
-              name="twitterName"
-              value={profileData.twitterName}
-              onChange={handleChange}
-              placeholder="X(旧Twitter)での名前を入力"
-              autoComplete="off"
-            />
+            <input type="text" name="twitterName" value={profileData.twitterName} onChange={handleChange} placeholder="X(旧Twitter)での名前を入力" autoComplete="off" />
           </div>
 
           <div className="form-group">
             <label className="form-label">着任時期</label>
-            <input
-              type="text"
-              name="joinDate"
-              value={profileData.joinDate}
-              onChange={handleChange}
-              placeholder="例: 2013年春"
-              autoComplete="off"
-            />
+            <input type="text" name="joinDate" value={profileData.joinDate} onChange={handleChange} placeholder="例: 2013年春" autoComplete="off" />
           </div>
 
           <div className="form-group">
@@ -384,14 +415,7 @@ function App() {
             <div className="radio-group">
               {['ゆるふわ勢', 'ライト勢', 'ガチ勢'].map((opt) => (
                 <label key={opt} className="radio-label">
-                  <input
-                    type="radio"
-                    name="playStyle"
-                    value={opt}
-                    checked={profileData.playStyle === opt}
-                    onChange={handleChange}
-                    style={{ display: 'none' }}
-                  />
+                  <input type="radio" name="playStyle" value={opt} checked={profileData.playStyle === opt} onChange={handleChange} style={{ display: 'none' }} />
                   {opt}
                 </label>
               ))}
@@ -403,14 +427,7 @@ function App() {
             <div className="radio-group">
               {['甲', '乙', '丙', '丁', '未回答'].map((opt) => (
                 <label key={opt} className="radio-label">
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value={opt}
-                    checked={profileData.difficulty === opt}
-                    onChange={handleChange}
-                    style={{ display: 'none' }}
-                  />
+                  <input type="radio" name="difficulty" value={opt} checked={profileData.difficulty === opt} onChange={handleChange} style={{ display: 'none' }} />
                   {opt}
                 </label>
               ))}
@@ -419,14 +436,7 @@ function App() {
 
           <div className="form-group">
             <label className="form-label">好きな艦娘</label>
-            <textarea
-              name="favoriteChars"
-              value={profileData.favoriteChars}
-              onChange={handleChange}
-              placeholder="例: 時雨、夕立、大和"
-              rows={3}
-              autoComplete="off"
-            />
+            <textarea name="favoriteChars" value={profileData.favoriteChars} onChange={handleChange} placeholder="例: 時雨、夕立、大和" rows={3} autoComplete="off" />
           </div>
 
           <div className="form-group">
@@ -434,14 +444,7 @@ function App() {
             <div className="radio-group">
               {['1期', '劇場版', '2期'].map((opt) => (
                 <label key={opt} className="radio-label">
-                  <input
-                    type="checkbox"
-                    name="animeHistory"
-                    value={opt}
-                    checked={profileData.animeHistory.includes(opt)}
-                    onChange={handleCheckboxChange}
-                    style={{ display: 'none' }}
-                  />
+                  <input type="checkbox" name="animeHistory" value={opt} checked={profileData.animeHistory.includes(opt)} onChange={handleCheckboxChange} style={{ display: 'none' }} />
                   {opt}
                 </label>
               ))}
@@ -453,14 +456,7 @@ function App() {
             <div className="radio-group">
               {['行っている', '行きたい', '行ったことはない'].map((opt) => (
                 <label key={opt} className="radio-label">
-                  <input
-                    type="radio"
-                    name="realEvents"
-                    value={opt}
-                    checked={profileData.realEvents === opt}
-                    onChange={handleChange}
-                    style={{ display: 'none' }}
-                  />
+                  <input type="radio" name="realEvents" value={opt} checked={profileData.realEvents === opt} onChange={handleChange} style={{ display: 'none' }} />
                   {opt}
                 </label>
               ))}
@@ -469,44 +465,20 @@ function App() {
 
           <div className="form-group">
             <label className="form-label">他プレイ中のゲーム</label>
-            <textarea
-              name="otherGames"
-              value={profileData.otherGames}
-              onChange={handleChange}
-              placeholder="その他プレイしているゲーム"
-              rows={3}
-              autoComplete="off"
-            />
+            <textarea name="otherGames" value={profileData.otherGames} onChange={handleChange} placeholder="その他プレイしているゲーム" rows={3} autoComplete="off" />
           </div>
 
           <div className="form-group">
             <label className="form-label">フリースペース</label>
-            <textarea
-              name="freeSpace"
-              value={profileData.freeSpace}
-              onChange={handleChange}
-              placeholder="自己紹介、挨拶、甲勲章の数、好きな艦娘、未所持艦娘などご自由に！"
-              rows={4}
-              autoComplete="off"
-            />
+            <textarea name="freeSpace" value={profileData.freeSpace} onChange={handleChange} placeholder="自己紹介、挨拶、甲勲章の数、好きな艦娘、未所持艦娘などご自由に！" rows={4} autoComplete="off" />
           </div>
 
           <div className="form-group">
             <label className="form-label">背景画像</label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBgImageUpload}
-                ref={bgImageInputRef}
-              />
+              <input type="file" accept="image/*" onChange={handleBgImageUpload} ref={bgImageInputRef} />
               {profileData.bgImage && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleBgImageReset}
-                  style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.75rem' }}
-                >
+                <button type="button" className="btn btn-secondary" onClick={handleBgImageReset} style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.75rem' }}>
                   リセット
                 </button>
               )}
@@ -515,52 +487,24 @@ function App() {
 
           <div className="form-group">
             <label className="form-label">背景画像の横位置 ({profileData.bgPositionX}px)</label>
-            <input
-              type="range"
-              name="bgPositionX"
-              min="-1500"
-              max="1500"
-              value={profileData.bgPositionX}
-              onChange={handleChange}
-              disabled={!profileData.bgImage}
-            />
+            <input type="range" name="bgPositionX" min="-1500" max="1500" value={profileData.bgPositionX} onChange={handleChange} disabled={!profileData.bgImage} />
           </div>
 
           <div className="form-group">
             <label className="form-label">背景画像の縦位置 ({profileData.bgPositionY}px)</label>
-            <input
-              type="range"
-              name="bgPositionY"
-              min="-1500"
-              max="1500"
-              value={profileData.bgPositionY}
-              onChange={handleChange}
-              disabled={!profileData.bgImage}
-            />
+            <input type="range" name="bgPositionY" min="-1500" max="1500" value={profileData.bgPositionY} onChange={handleChange} disabled={!profileData.bgImage} />
           </div>
 
           <div className="form-group">
             <label className="form-label">背景画像の拡大率 ({profileData.bgScale}%)</label>
-            <input
-              type="range"
-              name="bgScale"
-              min="50"
-              max="300"
-              value={profileData.bgScale}
-              onChange={handleChange}
-              disabled={!profileData.bgImage}
-            />
+            <input type="range" name="bgScale" min="50" max="300" value={profileData.bgScale} onChange={handleChange} disabled={!profileData.bgImage} />
           </div>
         </section>
 
         <section className="preview-panel">
           <div className="glass-panel preview-container">
             <div className="kancolle-card-wrapper" id="capture-wrapper">
-              <ProfileCard
-                profileData={profileData}
-                isExporting={isExporting}
-                defaultBgUrl={defaultBgUrl}
-              />
+              <ProfileCard profileData={profileData} defaultBgUrl={defaultBgUrl} />
             </div>
           </div>
 
