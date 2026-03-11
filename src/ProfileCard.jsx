@@ -28,8 +28,7 @@ const ProfileCard = ({ profileData, defaultBgUrl }) => {
     right: 0,
     bottom: 0,
     zIndex: 0,
-    overflow: 'hidden',
-    borderRadius: '12px'
+    overflow: 'hidden'
   };
 
   const defaultBgStyle = {
