@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { domToCanvas } from 'modern-screenshot';
+{/* import { domToCanvas } from 'modern-screenshot'; */ }
+import { domToBlob } from 'modern-screenshot';
 import { Download, Twitter, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
@@ -163,99 +164,76 @@ function App() {
 
     setIsExporting(true);
 
-    // DOM更新待ち
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    const cardElement = document.getElementById("card-preview");
-    if (!cardElement) {
-      setIsExporting(false);
-      return;
-    }
-
-    const isMobile =
-      window.innerWidth <= 768 ||
-      /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
-
-    let canvas = null;
-    let objectUrl = null;
-
     try {
-      const config = {
-        scale: isMobile ? 0.5 : 2.0,
-        quality: 0.9,
-        style: {
-          transform: "scale(1)",
-          transformOrigin: "top left",
-          margin: "0",
-        },
-        width: 756,
-        height: 1375,
-      };
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      canvas = await domToCanvas(cardElement, config);
+      const cardElement = document.getElementById("card-preview");
+      if (!cardElement) {
+        return;
+      }
+
+      const isMobile =
+        window.innerWidth <= 768 ||
+        /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
 
       const mimeType = isMobile ? "image/jpeg" : "image/png";
       const fileName = isMobile
         ? "kancolle_profile.jpg"
         : "kancolle_profile.png";
 
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob(
-          (b) => {
-            if (b) resolve(b);
-            else reject(new Error("Blob生成失敗"));
-          },
-          mimeType,
-          0.9
-        );
+      const blob = await domToBlob(cardElement, {
+        scale: isMobile ? 0.8 : 2,
+        quality: 0.9,
+        width: 756,
+        height: 1375,
+        style: {
+          transform: "scale(1)",
+          transformOrigin: "top left",
+          margin: "0",
+        },
       });
 
-      // canvasメモリ解放
-      canvas.width = 0;
-      canvas.height = 0;
-      canvas = null;
+      if (!blob) {
+        throw new Error("Blobの生成に失敗しました。");
+      }
 
-      // モバイルはShare APIを優先
       if (isMobile && navigator.share) {
         try {
           const file = new File([blob], fileName, { type: mimeType });
 
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          if (
+            navigator.canShare &&
+            navigator.canShare({ files: [file] })
+          ) {
             await navigator.share({
               files: [file],
               title: "艦これ自己紹介カード",
             });
-            setIsExporting(false);
             return;
           }
-        } catch (e) {
-          console.log("Share cancelled", e);
+        } catch (shareErr) {
+          console.log("Share API cancelled or failed:", shareErr);
         }
       }
 
-      // 通常ダウンロード
-      objectUrl = URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = fileName;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+        }, 1000);
+      }
     } catch (err) {
       console.error("Error saving image:", err);
       alert("画像の保存に失敗しました。");
     } finally {
-      if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-      }
-
-      if (objectUrl) {
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      }
-
       setIsExporting(false);
     }
   };
