@@ -1,7 +1,7 @@
 import React from 'react';
 import './ProfileCard.css';
 
-const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
+const ProfileCard = ({ profileData, defaultBgUrl }) => {
   const {
     name,
     twitterName,
@@ -20,8 +20,6 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
     bgPositionY,
     bgScale
   } = profileData;
-
-  const defaultBgUrl = defaultBgBase64 || `${import.meta.env.BASE_URL}bg2.png`;
 
   const bgContainerStyle = {
     position: 'absolute',
@@ -56,12 +54,9 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
 
   return (
     <div id="card-preview" className="kancolle-card">
-      {/* Background Image Layers - Use <img> tags instead of CSS background-image for iOS html-to-image compatibility */}
       <div style={bgContainerStyle}>
         <img src={defaultBgUrl} style={defaultBgStyle} alt="Default Background" />
-        {bgImage && (
-          <img src={bgImage} style={customBgStyle} alt="Custom Background" />
-        )}
+        {bgImage && <img src={bgImage} style={customBgStyle} alt="Custom Background" />}
       </div>
 
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -70,7 +65,6 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
         </div>
 
         <div className="card-body">
-          {/* Left column content: Image, Name, Twitter */}
           <div className="card-left">
             <div className="avatar-section">
               <div className="avatar-frame">
@@ -80,7 +74,6 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
                   <div className="avatar-placeholder">NO IMAGE</div>
                 )}
               </div>
-
             </div>
 
             <div className="info-block primary-info">
@@ -95,7 +88,6 @@ const ProfileCard = ({ profileData, isExporting, defaultBgBase64 }) => {
             </div>
           </div>
 
-          {/* Right column content: Other details */}
           <div className="card-right">
             <div className="info-grid">
               <div className="info-item">

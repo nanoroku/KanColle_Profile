@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-{/* import { domToCanvas } from 'modern-screenshot'; */ }
 import { domToBlob } from 'modern-screenshot';
-import { Download, Twitter, Loader2 } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
 
@@ -26,134 +25,169 @@ function App() {
   });
 
   const [isExporting, setIsExporting] = useState(false);
-  const [defaultBgBase64, setDefaultBgBase64] = useState('');
+  const [defaultBgUrl, setDefaultBgUrl] = useState('');
 
-  const cardRef = useRef(null);
   const bgImageInputRef = useRef(null);
 
   useEffect(() => {
-    const fetchDefaultBg = async () => {
-      try {
-        const isMobile = window.innerWidth <= 768 || /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const bgFilename = isMobile ? 'bg2_small.jpg' : 'bg2.png';
-        const response = await fetch(`${import.meta.env.BASE_URL}${bgFilename}`);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => setDefaultBgBase64(reader.result);
-        reader.readAsDataURL(blob);
-      } catch (err) {
-        console.error('Failed to load default background', err);
-      }
-    };
-    fetchDefaultBg();
+    const isMobile =
+      window.innerWidth <= 768 || /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+
+    const bgFilename = isMobile ? 'bg2_small.jpg' : 'bg2.png';
+    setDefaultBgUrl(`${import.meta.env.BASE_URL}${bgFilename}`);
   }, []);
 
-  const resizeImage = (file, maxWidth, maxHeight, callback) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-        if (width > height && width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        } else if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL(file.type || 'image/png', 0.9));
-      };
-      img.src = e.target.result;
+  useEffect(() => {
+    return () => {
+      if (profileData.image && profileData.image.startsWith('blob:')) {
+        URL.revokeObjectURL(profileData.image);
+      }
+      if (profileData.bgImage && profileData.bgImage.startsWith('blob:')) {
+        URL.revokeObjectURL(profileData.bgImage);
+      }
     };
-    reader.readAsDataURL(file);
+  }, [profileData.image, profileData.bgImage]);
+
+  const resizeImage = (file, maxWidth, maxHeight) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const img = new Image();
+
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+
+          if (width > height && width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas context の取得に失敗しました。'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Blob生成に失敗しました。'));
+                return;
+              }
+              const objectUrl = URL.createObjectURL(blob);
+              resolve(objectUrl);
+            },
+            'image/jpeg',
+            0.9
+          );
+        };
+
+        img.onerror = () => reject(new Error('画像の読み込みに失敗しました。'));
+        img.src = e.target.result;
+      };
+
+      reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました。'));
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({ ...prev, [name]: value }));
+    setProfileData((prev) => ({ ...prev, [name]: value }));
   };
 
   const serverName = [
-    "横須賀鎮守府",
-    "呉鎮守府",
-    "佐世保鎮守府",
-    "舞鶴鎮守府",
-    "大湊警備府",
-    "トラック泊地",
-    "リンガ泊地",
-    "ラバウル基地",
-    "ショートランド泊地",
-    "ブイン基地",
-    "タウイタウイ泊地",
-    "パラオ泊地",
-    "ブルネイ泊地",
-    "単冠湾泊地",
-    "幌筵泊地",
-    "宿毛湾泊地",
-    "鹿屋基地",
-    "岩川基地",
-    "佐伯湾泊地",
-    "柱島泊地"
+    "横須賀鎮守府", "呉鎮守府", "佐世保鎮守府", "舞鶴鎮守府", "大湊警備府",
+    "トラック泊地", "リンガ泊地", "ラバウル基地", "ショートランド泊地", "ブイン基地",
+    "タウイタウイ泊地", "パラオ泊地", "ブルネイ泊地", "単冠湾泊地", "幌筵泊地",
+    "宿毛湾泊地", "鹿屋基地", "岩川基地", "佐伯湾泊地", "柱島泊地"
   ];
 
   const PulldownMenu = () => {
     return (
-      <select
-        name="server"
-        value={profileData.server}
-        onChange={handleChange}
-      >
+      <select name="server" value={profileData.server} onChange={handleChange}>
         <option value="">未選択</option>
-        {serverName.map((server) => {
-          return <option key={server} value={server}>{server}</option>
-        })}
+        {serverName.map((server) => (
+          <option key={server} value={server}>{server}</option>
+        ))}
       </select>
     );
   };
 
   const handleCheckboxChange = (e) => {
     const { name, value, checked } = e.target;
-    setProfileData(prev => {
+    setProfileData((prev) => {
       const currentArray = prev[name] || [];
       if (checked) {
         return { ...prev, [name]: [...currentArray, value] };
-      } else {
-        return { ...prev, [name]: currentArray.filter(item => item !== value) };
       }
+      return { ...prev, [name]: currentArray.filter((item) => item !== value) };
     });
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      resizeImage(file, 800, 800, (resizedUrl) => {
-        setProfileData(prev => ({ ...prev, image: resizedUrl }));
+    if (!file) return;
+
+    try {
+      const resizedUrl = await resizeImage(file, 800, 800);
+
+      setProfileData((prev) => {
+        if (prev.image && prev.image.startsWith('blob:')) {
+          URL.revokeObjectURL(prev.image);
+        }
+        return { ...prev, image: resizedUrl };
       });
+    } catch (err) {
+      console.error(err);
+      alert('アイコン画像の読み込みに失敗しました。');
     }
   };
 
-  const handleBgImageUpload = (e) => {
+  const handleBgImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      resizeImage(file, 1500, 1500, (resizedUrl) => {
-        setProfileData(prev => ({ ...prev, bgImage: resizedUrl }));
+    if (!file) return;
+
+    try {
+      const resizedUrl = await resizeImage(file, 1500, 1500);
+
+      setProfileData((prev) => {
+        if (prev.bgImage && prev.bgImage.startsWith('blob:')) {
+          URL.revokeObjectURL(prev.bgImage);
+        }
+        return { ...prev, bgImage: resizedUrl };
       });
+    } catch (err) {
+      console.error(err);
+      alert('背景画像の読み込みに失敗しました。');
     }
   };
 
   const handleBgImageReset = () => {
-    setProfileData(prev => ({
-      ...prev,
-      bgImage: null,
-      bgPositionX: 0,
-      bgPositionY: 0,
-      bgScale: 100
-    }));
+    setProfileData((prev) => {
+      if (prev.bgImage && prev.bgImage.startsWith('blob:')) {
+        URL.revokeObjectURL(prev.bgImage);
+      }
+
+      return {
+        ...prev,
+        bgImage: null,
+        bgPositionX: 0,
+        bgPositionY: 0,
+        bgScale: 100
+      };
+    });
+
     if (bgImageInputRef.current) {
       bgImageInputRef.current.value = '';
     }
@@ -165,17 +199,15 @@ function App() {
   };
 
   const waitForAssets = async (root) => {
-    const images = Array.from(root.querySelectorAll("img"));
+    const images = Array.from(root.querySelectorAll('img'));
 
     await Promise.all(
       images.map(async (img) => {
         if (img.complete && img.naturalWidth > 0) {
-          if (typeof img.decode === "function") {
+          if (typeof img.decode === 'function') {
             try {
               await img.decode();
-            } catch (e) {
-              // decode失敗は無視して続行
-            }
+            } catch { }
           }
           return;
         }
@@ -186,12 +218,10 @@ function App() {
           img.onerror = done;
         });
 
-        if (typeof img.decode === "function") {
+        if (typeof img.decode === 'function') {
           try {
             await img.decode();
-          } catch (e) {
-            // decode失敗は無視して続行
-          }
+          } catch { }
         }
       })
     );
@@ -199,9 +229,7 @@ function App() {
     if (document.fonts && document.fonts.ready) {
       try {
         await document.fonts.ready;
-      } catch (e) {
-        // fonts.ready失敗は無視
-      }
+      } catch { }
     }
   };
 
@@ -213,21 +241,18 @@ function App() {
     let objectUrl = null;
 
     try {
-      const cardElement = document.getElementById("card-preview");
+      const cardElement = document.getElementById('card-preview');
       if (!cardElement) {
-        throw new Error("card-preview が見つかりません。");
+        throw new Error('card-preview が見つかりません。');
       }
 
       const isMobile =
         window.innerWidth <= 768 ||
         /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
 
-      const mimeType = isMobile ? "image/jpeg" : "image/png";
-      const fileName = isMobile
-        ? "kancolle_profile.jpg"
-        : "kancolle_profile.png";
+      const mimeType = isMobile ? 'image/jpeg' : 'image/png';
+      const fileName = isMobile ? 'kancolle_profile.jpg' : 'kancolle_profile.png';
 
-      // export-mode の反映待ちが必要ならここで state/class を切り替えた後に待つ
       await waitForRender();
       await waitForAssets(cardElement);
       await waitForRender();
@@ -237,21 +262,21 @@ function App() {
         quality: 0.9,
         width: 756,
         height: 1375,
-        backgroundColor: "#283d3f",
+        backgroundColor: '#283d3f',
         maximumCanvasSize: 2048,
         drawImageInterval: 150,
         style: {
-          transform: "none",
-          transformOrigin: "top left",
-          margin: "0",
-          opacity: "1",
-          visibility: "visible",
-          display: "flex",
+          transform: 'none',
+          transformOrigin: 'top left',
+          margin: '0',
+          opacity: '1',
+          visibility: 'visible',
+          display: 'flex',
         },
       });
 
       if (!blob || blob.size === 0) {
-        throw new Error("Blob の生成に失敗しました。");
+        throw new Error('Blob の生成に失敗しました。');
       }
 
       if (isMobile && navigator.share) {
@@ -261,26 +286,26 @@ function App() {
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
-              title: "艦これ自己紹介カード",
+              title: '艦これ自己紹介カード',
             });
             return;
           }
         } catch (shareErr) {
-          console.log("Share API cancelled or failed:", shareErr);
+          console.log('Share API cancelled or failed:', shareErr);
         }
       }
 
       objectUrl = URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = objectUrl;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error("Error saving image:", err);
-      alert("画像の保存に失敗しました。");
+      console.error('Error saving image:', err);
+      alert('画像の保存に失敗しました。');
     } finally {
       if (objectUrl) {
         setTimeout(() => {
@@ -292,78 +317,10 @@ function App() {
     }
   };
 
-  {/*const handleDownload = async () => {
-    setIsExporting(true);
-
-    // Wait for the DOM to update with the 'export-mode' class
-    setTimeout(async () => {
-      const cardElement = document.getElementById('card-preview');
-      if (!cardElement) {
-        setIsExporting(false);
-        return;
-      }
-
-      try {
-        const isMobile = window.innerWidth <= 768 || /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const config = {
-          scale: isMobile ? 1.0 : 2.0, // Scale set to 1.0 for mobile to absolutely minimize memory footprint
-          quality: 0.9,
-          style: {
-            transform: 'scale(1)',
-            transformOrigin: 'top left',
-            margin: '0',
-          },
-          width: 756,
-          height: 1375,
-        };
-
-        const canvas = await domToCanvas(cardElement, config);
-
-        // iOS strictly limits canvas memory count. By creating a Blob natively from the Canvas,
-        // we avoid massive string duplicates, and can manually destroy the Canvas immediately.
-        if (isMobile && navigator.share) {
-          try {
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-            // CRITICAL: Manually zero-out canvas dimensions to force WebKit to instantly drop the memory buffer
-            canvas.width = 0;
-            canvas.height = 0;
-
-            const file = new File([blob], 'kancolle_profile.jpg', { type: 'image/jpeg' });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: '艦これ自己紹介カード',
-              });
-              setIsExporting(false);
-              return; // Successful share/save via native OS dialogue!
-            }
-          } catch (shareErr) {
-            console.log('Share API cancelled or failed:', shareErr);
-          }
-        }
-
-        const dataUrl = canvas.toDataURL(isMobile ? 'image/jpeg' : 'image/png', 0.9);
-
-        // CRITICAL iOS FIX: Free memory immediately
-        canvas.width = 0;
-        canvas.height = 0;
-
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = isMobile ? 'kancolle_profile.jpg' : 'kancolle_profile.png';
-        link.click();
-      } catch (err) {
-        console.error('Error saving image:', err);
-        alert('画像の保存に失敗しました。');
-      } finally {
-        setIsExporting(false);
-      }
-    }, 150); // Small delay to guarantee browser repaints
-  };*/}
-
   const handlePostToX = () => {
-    const text = encodeURIComponent('艦これ自己紹介カードを作成しました！\n\n#艦これ\n#艦これ自己紹介カード');
+    const text = encodeURIComponent(
+      '艦これ自己紹介カードを作成しました！\n\n#艦これ\n#艦これ自己紹介カード'
+    );
     const twitterUrl = `https://twitter.com/intent/tweet?text=${text}`;
     window.open(twitterUrl, '_blank');
   };
@@ -375,16 +332,10 @@ function App() {
       </header>
 
       <main className="main-content">
-        {/* Left Side: Input Form */}
         <section className="glass-panel form-panel">
-
           <div className="form-group">
             <label className="form-label">アイコン画像</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-            />
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
           </div>
 
           <div className="form-group">
@@ -395,7 +346,7 @@ function App() {
               value={profileData.name}
               onChange={handleChange}
               placeholder="あなたの提督名を入力"
-              autocomplete="off"
+              autoComplete="off"
             />
           </div>
 
@@ -407,28 +358,9 @@ function App() {
               value={profileData.twitterName}
               onChange={handleChange}
               placeholder="X(旧Twitter)での名前を入力"
-              autocomplete="off"
+              autoComplete="off"
             />
           </div>
-
-          {/*<div className="form-group">
-            <label className="form-label">性別</label>
-            <div className="radio-group">
-              {['男性♂', '女性♀', 'その他', '秘密'].map(opt => (
-                <label key={opt} className="radio-label">
-                  <input
-                    type="radio"
-                    name="gender"
-                    value={opt}
-                    checked={profileData.gender === opt}
-                    onChange={handleChange}
-                    style={{ display: 'none' }}
-                  />
-                  {opt}
-                </label>
-              ))}
-            </div>
-          </div>*/}
 
           <div className="form-group">
             <label className="form-label">着任時期</label>
@@ -438,7 +370,7 @@ function App() {
               value={profileData.joinDate}
               onChange={handleChange}
               placeholder="例: 2013年春"
-              autocomplete="off"
+              autoComplete="off"
             />
           </div>
 
@@ -450,7 +382,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">普段のプレイスタイル</label>
             <div className="radio-group">
-              {['ゆるふわ勢', 'ライト勢', 'ガチ勢'].map(opt => (
+              {['ゆるふわ勢', 'ライト勢', 'ガチ勢'].map((opt) => (
                 <label key={opt} className="radio-label">
                   <input
                     type="radio"
@@ -469,7 +401,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">イベントでの難易度</label>
             <div className="radio-group">
-              {['甲', '乙', '丙', '丁', '未回答'].map(opt => (
+              {['甲', '乙', '丙', '丁', '未回答'].map((opt) => (
                 <label key={opt} className="radio-label">
                   <input
                     type="radio"
@@ -493,14 +425,14 @@ function App() {
               onChange={handleChange}
               placeholder="例: 時雨、夕立、大和"
               rows={3}
-              autocomplete="off"
+              autoComplete="off"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">アニメ視聴歴</label>
             <div className="radio-group">
-              {['1期', '劇場版', '2期'].map(opt => (
+              {['1期', '劇場版', '2期'].map((opt) => (
                 <label key={opt} className="radio-label">
                   <input
                     type="checkbox"
@@ -519,7 +451,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">リアルイベントへの参加</label>
             <div className="radio-group">
-              {['行っている', '行きたい', '行ったことはない'].map(opt => (
+              {['行っている', '行きたい', '行ったことはない'].map((opt) => (
                 <label key={opt} className="radio-label">
                   <input
                     type="radio"
@@ -543,7 +475,7 @@ function App() {
               onChange={handleChange}
               placeholder="その他プレイしているゲーム"
               rows={3}
-              autocomplete="off"
+              autoComplete="off"
             />
           </div>
 
@@ -555,7 +487,7 @@ function App() {
               onChange={handleChange}
               placeholder="自己紹介、挨拶、甲勲章の数、好きな艦娘、未所持艦娘などご自由に！"
               rows={4}
-              autocomplete="off"
+              autoComplete="off"
             />
           </div>
 
@@ -621,11 +553,14 @@ function App() {
           </div>
         </section>
 
-        {/* Right Side: Preview & Actions */}
         <section className="preview-panel">
           <div className="glass-panel preview-container">
             <div className="kancolle-card-wrapper" id="capture-wrapper">
-              <ProfileCard profileData={profileData} isExporting={isExporting} defaultBgBase64={defaultBgBase64} />
+              <ProfileCard
+                profileData={profileData}
+                isExporting={isExporting}
+                defaultBgUrl={defaultBgUrl}
+              />
             </div>
           </div>
 
@@ -642,7 +577,7 @@ function App() {
           {isExporting && (
             <div className="export-progress">
               <Loader2 className="spin" size={24} />
-              <span>画像生成中です... 少々お待ちください</span>
+              <span>画像生成中です...</span>
             </div>
           )}
         </section>
