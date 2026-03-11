@@ -54,7 +54,7 @@ const ProfileCard = ({ profileData, defaultBgUrl }) => {
 
   return (
     <div id="card-preview" className="kancolle-card">
-      <div style={bgContainerStyle}>
+      <div id="bg-layer" style={bgContainerStyle}>
         <img src={defaultBgUrl} style={defaultBgStyle} alt="Default Background" />
         {bgImage && <img src={bgImage} style={customBgStyle} alt="Custom Background" />}
       </div>

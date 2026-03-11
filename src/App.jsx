@@ -242,7 +242,7 @@ function App() {
     wrapper.style.pointerEvents = 'none';
     wrapper.style.opacity = '1';
     wrapper.style.zIndex = '-1';
-    wrapper.style.background = '#283d3f';
+    wrapper.style.background = 'transparent';
 
     const clone = sourceEl.cloneNode(true);
     clone.id = 'card-preview-clone';
@@ -254,6 +254,12 @@ function App() {
 
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
+
+    // 透過キャプチャのために背景レイヤーを非表示にする
+    const bgLayer = wrapper.querySelector('#bg-layer');
+    if (bgLayer) {
+      bgLayer.style.display = 'none';
+    }
 
     // CRITICAL iOS FIX: Cloned DOM nodes lose their image buffers in WebKit. 
     // We must manually force WebKit to re-hydrate every image by re-assigning the src.
@@ -310,7 +316,7 @@ function App() {
         quality: 0.9,
         width: 756,
         height: 1375,
-        backgroundColor: '#283d3f',
+        backgroundColor: 'transparent',
         style: {
           transform: 'none',
           transformOrigin: 'top left',
@@ -321,10 +327,96 @@ function App() {
         }
       };
 
-      const blob = await domToBlob(target, options);
+      // UI部分だけを軽量なPNGとして抽出
+      const uiBlob = await domToBlob(target, options);
+
+      if (!uiBlob || uiBlob.size === 0) {
+        throw new Error('UIレイヤーの生成に失敗しました。');
+      }
+
+      // ネイティブCanvasを自前で用意して画像を合成する（iOS特有の巨大SVGメモリパンクを完全回避）
+      const canvas = document.createElement('canvas');
+      const scale = options.scale;
+      const cw = 756 * scale;
+      const ch = 1375 * scale;
+      canvas.width = cw;
+      canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+
+      // 1. ベースの背景色を塗りつぶし
+      ctx.fillStyle = '#283d3f';
+      ctx.fillRect(0, 0, cw, ch);
+
+      // 画像読み込み用ヘルパー
+      const loadImg = (src) => new Promise((resolve) => {
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+
+      // 2. デフォルト背景画像を描画（object-fit: coverの計算）
+      const defaultImg = await loadImg(defaultBgUrl);
+      if (defaultImg) {
+        const imgRatio = defaultImg.width / defaultImg.height;
+        const canvasRatio = cw / ch;
+        let drawW = cw;
+        let drawH = ch;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (imgRatio > canvasRatio) {
+          drawW = ch * imgRatio;
+          offsetX = -(drawW - cw) / 2;
+        } else {
+          drawH = cw / imgRatio;
+          offsetY = -(drawH - ch) / 2;
+        }
+        ctx.drawImage(defaultImg, offsetX, offsetY, drawW, drawH);
+      }
+
+      // 3. ユーザーのカスタム背景を描画（right, bottom基準のcontain風）
+      if (profileData.bgImage) {
+        const customImg = await loadImg(profileData.bgImage);
+        if (customImg) {
+          const logicW = 756 * (profileData.bgScale / 100);
+          const logicH = logicW * (customImg.height / customImg.width);
+          const logicX = 756 - logicW - (-profileData.bgPositionX);
+          const logicY = 1375 - logicH - (-profileData.bgPositionY);
+
+          ctx.drawImage(
+            customImg,
+            logicX * scale,
+            logicY * scale,
+            logicW * scale,
+            logicH * scale
+          );
+        }
+      }
+
+      // 4. UIレイヤーを描画（前面重ね）
+      const uiObjectUrl = URL.createObjectURL(uiBlob);
+      const uiImg = await loadImg(uiObjectUrl);
+      if (uiImg) {
+        ctx.drawImage(uiImg, 0, 0, cw, ch);
+      }
+      URL.revokeObjectURL(uiObjectUrl);
+
+      // 5. 最終的な1枚絵としてBlobに出力
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error('Canvasの合成に失敗しました。'));
+        }, mimeType, 0.9);
+      });
+
+      // 【極めて重要】iOS SafariのCanvas強制メモリ解放
+      canvas.width = 0;
+      canvas.height = 0;
 
       if (!blob || blob.size === 0) {
-        throw new Error('Blob の生成に失敗しました。');
+        throw new Error('最終Blobの生成に失敗しました。');
       }
 
       if (isMobile && navigator.share) {
