@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { domToBlob } from 'modern-screenshot';
+import { domToBlob, domToCanvas } from 'modern-screenshot';
 import { Download, Loader2 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 import './App.css';
@@ -81,17 +81,11 @@ function App() {
           const isTransparentFormat = ['image/png', 'image/gif', 'image/webp'].includes(file.type);
           const outputMimeType = isTransparentFormat ? 'image/png' : 'image/jpeg';
 
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('Blob生成に失敗しました。'));
-                return;
-              }
-              resolve(URL.createObjectURL(blob));
-            },
+          const dataUrl = canvas.toDataURL(
             outputMimeType,
             isTransparentFormat ? undefined : 0.9
           );
+          resolve(dataUrl);
         };
 
         img.onerror = () => reject(new Error('画像の読み込みに失敗しました。'));
@@ -327,10 +321,10 @@ function App() {
         }
       };
 
-      // UI部分だけを軽量なPNGとして抽出
-      const uiBlob = await domToBlob(target, options);
+      // UI部分だけを軽量なPNGではなくCanvasとして直接抽出（内部のCanvasをJavaScriptで強制破棄できるようにするため）
+      const uiCanvas = await domToCanvas(target, options);
 
-      if (!uiBlob || uiBlob.size === 0) {
+      if (!uiCanvas) {
         throw new Error('UIレイヤーの生成に失敗しました。');
       }
 
@@ -396,12 +390,11 @@ function App() {
       }
 
       // 4. UIレイヤーを描画（前面重ね）
-      const uiObjectUrl = URL.createObjectURL(uiBlob);
-      const uiImg = await loadImg(uiObjectUrl);
-      if (uiImg) {
-        ctx.drawImage(uiImg, 0, 0, cw, ch);
-      }
-      URL.revokeObjectURL(uiObjectUrl);
+      ctx.drawImage(uiCanvas, 0, 0, cw, ch);
+
+      // 【極めて重要】modern-screenshot内部で生成された巨大CanvasのメモリをJavaScript側で強制破棄
+      uiCanvas.width = 0;
+      uiCanvas.height = 0;
 
       // 5. 最終的な1枚絵としてBlobに出力
       const blob = await new Promise((resolve, reject) => {
