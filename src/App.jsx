@@ -525,7 +525,7 @@ function App() {
 
   const handlePostToX = () => {
     const text = encodeURIComponent(
-      '艦これ自己紹介カードを作成しました！\n\n#艦これ\n#艦これ自己紹介カード'
+      '艦これ自己紹介カードを作成しました！\n\nhttps://nanoroku.github.io/KanColle_Profile/\n\n#艦これ\n#艦これ自己紹介カード'
     );
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
   };
@@ -664,10 +664,10 @@ function App() {
           <div className="action-buttons">
             <button className="btn btn-primary" onClick={handleDownload} disabled={isExporting}>
               <Download size={20} />
-              画像を保存する
+              画像保存
             </button>
             <button className="btn btn-twitter" onClick={handlePostToX}>
-              Xでポストする
+              Xでポスト(画像は自分で添付してね)
             </button>
           </div>
 
