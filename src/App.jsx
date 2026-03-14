@@ -525,7 +525,7 @@ function App() {
 
   const handlePostToX = () => {
     const text = encodeURIComponent(
-      '艦これ自己紹介カードを作成しました！\n\nhttps://nanoroku.github.io/KanColle_Profile/\n\n#艦これ\n#艦これ自己紹介カード'
+      '艦これ自己紹介カードを作成しました！\n\nhttps://nanoroku.github.io/KanColle_Profile/\n\n#艦これ\n#艦これ自己紹介カードメーカー'
     );
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
   };
@@ -568,7 +568,7 @@ function App() {
             <div className="radio-group">
               {['ゆるふわ勢', 'ライト勢', 'ガチ勢'].map((opt) => (
                 <label key={opt} className="radio-label">
-                  <input type="radio" name="playStyle" value={opt} checked={profileData.playStyle === opt} onChange={handleChange} style={{ display: 'none' }} />
+                  <input type="checkbox" name="playStyle" value={opt} checked={profileData.playStyle.includes(opt)} onChange={handleCheckboxChange} style={{ display: 'none' }} />
                   {opt}
                 </label>
               ))}
@@ -580,7 +580,7 @@ function App() {
             <div className="radio-group">
               {['甲', '乙', '丙', '丁', '未回答'].map((opt) => (
                 <label key={opt} className="radio-label">
-                  <input type="radio" name="difficulty" value={opt} checked={profileData.difficulty === opt} onChange={handleChange} style={{ display: 'none' }} />
+                  <input type="checkbox" name="difficulty" value={opt} checked={profileData.difficulty.includes(opt)} onChange={handleCheckboxChange} style={{ display: 'none' }} />
                   {opt}
                 </label>
               ))}
@@ -607,7 +607,7 @@ function App() {
           <div className="form-group">
             <label className="form-label">リアルイベントへの参加</label>
             <div className="radio-group">
-              {['行っている', '行きたい', '行ったことはない'].map((opt) => (
+              {['行っている', '行きたい', '行ったことはない', '行ったことある'].map((opt) => (
                 <label key={opt} className="radio-label">
                   <input type="radio" name="realEvents" value={opt} checked={profileData.realEvents === opt} onChange={handleChange} style={{ display: 'none' }} />
                   {opt}

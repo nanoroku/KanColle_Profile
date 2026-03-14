@@ -99,12 +99,16 @@ const ProfileCard = ({ profileData, defaultBgUrl }) => {
               </div>
               <div className="info-item">
                 <span className="info-label">普段のプレイスタイル</span>
-                <span className="info-value">{playStyle || '未選択'}</span>
+                <span className="info-value">{Array.isArray(playStyle) && playStyle.length > 0
+                  ? playStyle.join('、')
+                  : ''}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">イベントでの難易度</span>
                 <span className="info-value difficulty-badge" data-level={difficulty || ''}>
-                  {difficulty || '未選択'}
+                  {Array.isArray(difficulty) && difficulty.length > 0
+                    ? difficulty.join('')
+                    : ''}
                 </span>
               </div>
             </div>
