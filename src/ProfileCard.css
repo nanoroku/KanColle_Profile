@@ -257,22 +257,58 @@
     margin-top: 2.4px;
 }
 
-.difficulty-badge[data-level="甲"] {
+.difficulty-甲 {
+    display: inline-block;
+    padding: 2.4px 9.6px;
+    border-radius: 5px;
+    font-size: 1.2rem !important;
+    /* 0.85 * 1.2 */
+    font-weight: 700 !important;
+    text-align: center;
+    align-self: flex-start;
+    margin-top: 2.4px;
     background: #d32f2f;
     color: white;
 }
 
-.difficulty-badge[data-level="乙"] {
+.difficulty-乙 {
+    display: inline-block;
+    padding: 2.4px 9.6px;
+    border-radius: 5px;
+    font-size: 1.2rem !important;
+    /* 0.85 * 1.2 */
+    font-weight: 700 !important;
+    text-align: center;
+    align-self: flex-start;
+    margin-top: 2.4px;
     background: #f57c00;
     color: white;
 }
 
-.difficulty-badge[data-level="丙"] {
+.difficulty-丙 {
+    display: inline-block;
+    padding: 2.4px 9.6px;
+    border-radius: 5px;
+    font-size: 1.2rem !important;
+    /* 0.85 * 1.2 */
+    font-weight: 700 !important;
+    text-align: center;
+    align-self: flex-start;
+    margin-top: 2.4px;
     background: #388e3c;
     color: white;
 }
 
-.difficulty-badge[data-level="丁"] {
+.difficulty-丁 {
+    display: inline-block;
+    padding: 2.4px 9.6px;
+    border-radius: 5px;
+    font-size: 1.2rem !important;
+    /* 0.85 * 1.2 */
+    font-weight: 700 !important;
+    text-align: center;
+    align-self: flex-start;
+    margin-top: 2.4px;
     background: #1976d2;
     color: white;
 }

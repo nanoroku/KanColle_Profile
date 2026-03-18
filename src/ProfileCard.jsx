@@ -105,9 +105,26 @@ const ProfileCard = ({ profileData, defaultBgUrl }) => {
               </div>
               <div className="info-item">
                 <span className="info-label">イベントでの難易度</span>
-                <span className="info-value difficulty-badge" data-level={difficulty || ''}>
+                <span className="info-value difficulty-badge">
                   {Array.isArray(difficulty) && difficulty.length > 0
-                    ? difficulty.join('')
+                    ? difficulty.map((item, index) => (
+                      <span
+                        key={index}
+                        className={
+                          item === '甲'
+                            ? 'difficulty-甲'
+                            : item === '乙'
+                              ? 'difficulty-乙'
+                              : item === '丙'
+                                ? 'difficulty-丙'
+                                : item === '丁'
+                                  ? 'difficulty-丁'
+                                  : ''
+                        }
+                      >
+                        {item}
+                      </span>
+                    ))
                     : ''}
                 </span>
               </div>
