@@ -295,3 +295,10 @@
     transform: rotate(360deg);
   }
 }
+
+.credit {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 1.0rem;
+  color: var(--text-secondary);
+}

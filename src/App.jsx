@@ -525,7 +525,7 @@ function App() {
 
   const handlePostToX = () => {
     const text = encodeURIComponent(
-      '艦これ自己紹介カードを作成しました！\n\nhttps://nanoroku.github.io/KanColle_Profile/\n\n#艦これ\n#艦これ自己紹介カードメーカー'
+      '艦これ自己紹介カードを作成しました！\n\nhttps://nanoroku.github.io/KanColle_Profile/\n\n#艦これ\n#艦これ自己紹介カード\n#艦これ自己紹介カードメーカー'
     );
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
   };
@@ -677,6 +677,11 @@ function App() {
               <span>画像生成中です...</span>
             </div>
           )}
+          <div className="credit">
+            <p>リスペクト元の自己紹介カード：<a href="https://x.com/Tapu_teitokuaka/status/1616082045415092225" target="_blank" rel="noopener noreferrer">URL</a></p>
+            <p>スペシャルサンクス：<a href="https://x.com/Tapu_teitokuaka" target="_blank" rel="noopener noreferrer">カプコモルゥー様</a></p>
+            <p>開発者(要望や不具合修正などはこちらへ)：<a href="https://x.com/nanoroku" target="_blank" rel="noopener noreferrer">ロク</a></p>
+          </div>
         </section>
       </main>
     </div>
